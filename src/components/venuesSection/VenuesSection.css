@@ -1,0 +1,149 @@
+.venues-section {
+  width: 100%;
+}
+
+/* input widths */
+.venues-search { width: 260px; }
+.venues-select { width: 180px; }
+
+@media (max-width: 576px) {
+  .venues-search, .venues-select { width: 100%; }
+}
+
+/* cards */
+.venue-card {
+  background: #111522;
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.venue-image-wrap { height: 180px; overflow: hidden; }
+.venue-image { width: 100%; height: 100%; object-fit: cover; display: block; }
+.venue-tag { border: 1px solid rgba(255, 255, 255, 0.15); }
+
+/* ✅ Horizontal scroll + snap */
+.venues-hscroll {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(280px, 360px);
+  gap: 16px;
+
+  overflow-x: auto;
+  overflow-y: hidden;
+
+  padding-bottom: 8px;
+
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+
+  /* مخفی کردن scrollbar (اختیاری) */
+  scrollbar-width: none;      /* Firefox */
+}
+.venues-hscroll::-webkit-scrollbar {
+  display: none;              /* Chrome/Safari */
+}
+
+.venues-snap-card {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+/* Wrapper برای فلش‌ها + اسکرول */
+.venues-carousel {
+  position: relative;
+}
+
+.venues-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 5;
+
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.16);
+
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.95);
+
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;           /* مهم */
+  line-height: 0;       /* مهم برای SVG */
+
+  box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+  cursor: pointer;
+
+  transition: transform 150ms ease, background 150ms ease, opacity 150ms ease;
+}
+
+.venues-arrow svg {
+  display: block;       /* تضمین وسط‌چین */
+}
+
+.venues-arrow:hover {
+  background: rgba(255,255,255,0.12);
+  transform: translateY(-50%) scale(1.05);
+}
+
+.venues-arrow:active {
+  transform: translateY(-50%) scale(0.98);
+}
+
+.venues-arrow-left  { left: -10px; }
+.venues-arrow-right { right: -10px; }
+
+/* موبایل */
+@media (max-width: 576px) {
+  .venues-arrow {
+    width: 38px;
+    height: 38px;
+  }
+}
+
+/* روی موبایل فلش‌ها کوچیک‌تر و نزدیک‌تر */
+@media (max-width: 576px) {
+  .venues-arrow {
+    width: 38px;
+    height: 38px;
+    font-size: 24px;
+  }
+  .venues-arrow-left { left: -6px; }
+  .venues-arrow-right { right: -6px; }
+}
+
+/* یک پدینگ سمت چپ/راست برای اینکه زیر فلش‌ها کارت نره */
+.venues-hscroll {
+  padding-left: 44px;
+  padding-right: 44px;
+}
+
+@media (max-width: 576px) {
+  .venues-hscroll {
+    padding-left: 40px;
+    padding-right: 40px;
+  }
+}
+
+
+/* Desktop: کمی بزرگ‌تر */
+@media (min-width: 992px) {
+  .venues-hscroll {
+    grid-auto-columns: minmax(320px, 380px);
+    gap: 18px;
+  }
+}
+
+/* Mobile: کارت کمی باریک‌تر */
+@media (max-width: 576px) {
+  .venues-hscroll {
+    grid-auto-columns: 82vw;  /* حس swipe خوب */
+  }
+}

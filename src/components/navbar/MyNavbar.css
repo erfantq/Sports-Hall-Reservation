@@ -1,0 +1,83 @@
+.my-navbar {
+  position: absolute; /* روی Hero بشینه */
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(1100px, calc(100% - 28px));
+  z-index: 10;
+}
+
+/* glass */
+.glass-nav {
+  background: rgba(17, 21, 34, 0.45) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 16px 45px rgba(0, 0, 0, 0.35);
+}
+
+/* logo */
+.logo {
+  height: 34px;
+  width: auto;
+  display: block;
+}
+
+/* hamburger button */
+.nav-toggle {
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  border-radius: 12px !important; 
+  padding: 8px 10px !important;
+}
+
+/* links spacing desktop */
+.nav-links .nav-link,
+.nav-auth .nav-link {
+  color: rgba(255, 255, 255, 0.85) !important;
+  font-weight: 600;
+}
+
+.nav-links .nav-link:hover,
+.nav-auth .nav-link:hover {
+  color: #fff !important;
+}
+
+/* --- Mobile/Tablet dropdown styling --- */
+@media (max-width: 767.98px) {
+  .my-navbar {
+    width: calc(100% - 20px);
+    top: 12px;
+  }
+
+ 
+  .my-navbar.rounded-pill {
+    border-radius: 18px !important;
+  }
+
+  .navbar-collapse {
+    margin-top: 10px;
+    padding: 12px 12px 6px;
+    border-top: 1px solid rgba(255, 255, 255, 0.10);
+  }
+
+  .nav-links,
+  .nav-auth {
+    gap: 6px;
+  }
+
+  .nav-links .nav-link,
+  .nav-auth .nav-link {
+    padding: 10px 10px !important;
+    border-radius: 12px;
+  }
+
+  .nav-links .nav-link:hover,
+  .nav-auth .nav-link:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  /* auth بخش آخر بیاد */
+  .nav-auth {
+    margin-top: 8px;
+  }
+}

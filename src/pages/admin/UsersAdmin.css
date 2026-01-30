@@ -1,0 +1,85 @@
+.admin-table-wrap {
+  width: 100%;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.03);
+}
+
+.admin-table {
+  margin: 0;
+  color: rgba(255,255,255,0.88);
+}
+
+.admin-table thead th {
+  color: rgba(255,255,255,0.70);
+  font-weight: 800;
+  border-bottom: 1px solid rgba(255,255,255,0.10) !important;
+  padding: 14px 14px;
+  background: rgba(0,0,0,0.12);
+}
+
+.admin-table tbody td {
+  border-top: 1px solid rgba(255,255,255,0.06) !important;
+  padding: 14px 14px;
+  vertical-align: middle;
+}
+
+.icon-btn {
+  width: 40px;
+  height: 38px;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 12px !important;
+  border-color: rgba(255,255,255,0.18) !important;
+  background: rgba(255,255,255,0.05) !important;
+}
+
+.icon-btn:hover {
+  background: rgba(255,255,255,0.10) !important;
+}
+
+.icon-btn.danger:hover {
+  border-color: rgba(255, 80, 80, 0.35) !important;
+  background: rgba(255, 80, 80, 0.10) !important;
+}
+
+.role-badge {
+  border-radius: 12px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.06);
+  font-weight: 800;
+  color: rgba(255,255,255,0.88);
+}
+
+.role-admin { background: rgba(255,255,255,0.10); }
+.role-vm { background: rgba(255,255,255,0.06); }
+.role-user { background: rgba(255,255,255,0.04); }
+
+.status-badge {
+  border-radius: 12px;
+  padding: 8px 10px;
+  font-weight: 900;
+  min-width: 92px;
+  text-align: center;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.85);
+}
+.status-badge.ok { background: rgba(255,255,255,0.10); }
+.status-badge.off { opacity: 0.7; }
+
+/* انیمیشن paging خیلی ملایم */
+.admin-table.is-animating.next { animation: slideNext 180ms ease; }
+.admin-table.is-animating.prev { animation: slidePrev 180ms ease; }
+
+@keyframes slideNext {
+  from { transform: translateX(10px); opacity: 0.5; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes slidePrev {
+  from { transform: translateX(-10px); opacity: 0.5; }
+  to { transform: translateX(0); opacity: 1; }
+}

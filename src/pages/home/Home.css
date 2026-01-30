@@ -1,0 +1,86 @@
+html, body {
+  height: 100%;
+  margin: 0;
+  overflow-x: hidden;
+}
+
+.scroll-container {
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  scroll-snap-type: y mandatory; /* همیشه روشن */
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+.snap-section {
+  height: 100vh;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  overflow: hidden; /* جلوگیری از اسکرول داخلی عمودی */
+}
+
+.footer-snap {
+  overflow: hidden; /* سکشن ثابت */
+}
+
+/* venues shell */
+.venues-snap {
+  background: #0b0d12;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.venues-snap-inner {
+  width: 100%;
+  max-width: 1200px;
+  padding: 24px;
+}
+
+@supports (height: 100dvh) {
+  .snap-section {
+    height: 100dvh;
+  }
+}
+
+/* موبایل */
+@media (max-width: 576px) {
+  /* به جای وسط‌چین کامل، از بالا شروع کن تا محتوا قطع نشه */
+  .footer-section {
+    align-items: flex-start;
+    padding: 14px 0;
+  }
+
+  /* کارت در ارتفاع موبایل جا نشد => داخل خودش اسکرول بخوره */
+  .footer-card {
+    max-height: calc(100vh - 28px); /* حاشیه امن */
+    overflow-y: auto;
+
+    /* جلوگیری از بیرون‌زدگی‌های عجیب */
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* newsletter column و جلوگیری از کش آمدن input */
+  .footer-newsletter {
+    flex-direction: column;
+  }
+
+  .footer-input {
+    flex: 0 0 auto;
+    width: 100%;
+    min-height: 44px; /* کنترل */
+  }
+
+  .footer-btn {
+    width: 100%;
+  }
+
+  /* لینک‌های پایین wrap بشن */
+  .footer-bottom-links {
+    flex-wrap: wrap;
+  }
+}
+

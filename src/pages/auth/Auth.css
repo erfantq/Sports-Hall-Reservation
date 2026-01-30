@@ -1,0 +1,147 @@
+.auth-page {
+  min-height: 100dvh;
+  background: #0b0d12;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 14px;
+}
+
+.light-rays{
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    display: flex;
+    text-align: center;
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+/* .auth-page::before {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  background:
+    radial-gradient(700px 380px at 20% 20%, rgba(255,255,255,0.10), transparent 60%),
+    radial-gradient(520px 320px at 80% 30%, rgba(120,160,255,0.10), transparent 62%),
+    radial-gradient(600px 340px at 55% 85%, rgba(180,120,255,0.08), transparent 65%);
+  opacity: 0.55;
+  pointer-events: none;
+} */
+
+.auth-card {
+  width: min(520px, 100%);
+  position: relative;
+  z-index: 2;
+
+  border-radius: 18px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.10);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 18px 45px rgba(0,0,0,0.35);
+
+  padding: 24px 20px;
+}
+
+.auth-title {
+  color: #fff;
+  font-weight: 800;
+  margin: 0 0 6px;
+  font-size: 1.6rem;
+}
+
+.auth-subtitle {
+  color: rgba(255,255,255,0.62);
+  margin: 0 0 18px;
+}
+
+.auth-label {
+  color: rgba(255,255,255,0.80);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.auth-input {
+  background: rgba(255,255,255,0.06) !important;
+  border: 1px solid rgba(255,255,255,0.14) !important;
+  color: #fff !important;
+
+  border-radius: 12px !important;
+  padding: 12px 14px !important;
+}
+
+.auth-input::placeholder {
+  color: rgba(255,255,255,0.55);
+}
+
+.auth-links {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.auth-links a {
+  color: rgba(255,255,255,0.78);
+  text-decoration: none;
+}
+
+.auth-links a:hover {
+  color: #fff;
+}
+
+.auth-divider {
+  height: 1px;
+  background: rgba(255,255,255,0.10);
+  margin: 16px 0;
+}
+
+/* --- Glass Balls / Blobs --- */
+.auth-blob {
+  position: absolute;
+  border-radius: 999px;
+  pointer-events: none;
+  filter: blur(0.2px);
+  opacity: 0.9;
+}
+
+.auth-blob.behind {
+  z-index: 0;
+  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.28), rgba(255,255,255,0.06) 55%, transparent 70%),
+              radial-gradient(circle at 60% 70%, rgba(130,170,255,0.18), transparent 60%);
+  border: 1px solid rgba(255,255,255,0.10);
+}
+
+.auth-blob.front {
+  z-index: 3;
+  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.34), rgba(255,255,255,0.08) 55%, transparent 72%),
+              radial-gradient(circle at 65% 75%, rgba(180,120,255,0.18), transparent 60%);
+  border: 1px solid rgba(255,255,255,0.14);
+  box-shadow: 0 18px 55px rgba(0,0,0,0.35);
+}
+
+/* positions */
+.auth-blob.b1 { width: 260px; height: 260px; left: -60px; top: 80px; }
+.auth-blob.b2 { width: 220px; height: 220px; right: -70px; top: 140px; }
+.auth-blob.b3 { width: 320px; height: 320px; left: 55%; top: 62%; transform: translate(-50%, -50%); }
+
+/* توپ‌های جلو کمی کوچک‌تر روی موبایل */
+@media (max-width: 576px) {
+  .auth-blob.b1 { width: 200px; height: 200px; left: -70px; top: 70px; }
+  .auth-blob.b2 { width: 170px; height: 170px; right: -60px; top: 110px; }
+  .auth-blob.b3 { width: 240px; height: 240px; left: 60%; top: 70%; }
+}
+
+
+
+
