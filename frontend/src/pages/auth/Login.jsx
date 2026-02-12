@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Container, Form, Button, Alert } from "react-bootstrap";
+import { Container, Form, Button, Alert, Spinner } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
 import MyLightRays from "../../components/lightRays/MyLightRays";
 import "./Auth.css";
@@ -27,7 +27,7 @@ export default function  Login() {
       setLoading(true);
 
       const res = await fetch(
-        import.meta.env.VITE_API_BASE_URL + "/api/auth/login/",
+        import.meta.env.VITE_API_BASE_URL + "/api/login/",
         {
           method: "POST",
           headers: {
