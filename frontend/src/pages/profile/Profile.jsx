@@ -1,27 +1,50 @@
-import React, { useMemo, useState } from "react";
-import { Container, Row, Col, Card, Form, Button, Badge, Table, Pagination, Alert } from "react-bootstrap";
+import React, { useEffect, useMemo, useState } from "react";
+import { Container, Row, Col, Card, Form, Button, Badge, Table, Pagination, Alert, Spinner } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import "./Profile.css";
 
-const MOCK_USER = {
-  fullName: "John Doe",
-  email: "john@example.com",
-  phone: "+98 912 000 0000",
-  city: "Tehran",
-};
-
-const MOCK_BOOKINGS = Array.from({ length: 23 }).map((_, i) => ({
-  id: 1000 + i,
-  venueName: ["Arena Fit Center", "Sky Court", "Pulse Club"][i % 3],
-  sport: ["Football", "Basketball", "Volleyball"][i % 3],
-  date: `2025-12-${String((i % 28) + 1).padStart(2, "0")}`,
-  time: `${String((i % 12) + 8).padStart(2, "0")}:00`,
-  durationHours: (i % 2) + 1,
-  price: 320 + (i % 5) * 40,
-  status: ["Confirmed", "Pending", "Canceled"][i % 3],
-}));
-
 const PAGE_SIZE = 6;
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+const PROFILE_URL = import.meta.env.VITE_API_PROFILE_URL || `${API_BASE}/api/users/me/`;
+const BOOKINGS_URL = import.meta.env.VITE_API_MY_BOOKINGS_URL || `${API_BASE}/api/bookings/my/`;
+
+function normalizeUser(payload) {
+  const data = payload?.data || payload || {};
+  const user = data.user || data;
+  return {
+    fullName: user.fullName || "",
+    email: user.email || "",
+    phone: user.phone || "",
+    city: user.city || "",
+  };
+}
+
+function normalizeBookings(payload) {
+  const ok = payload?.status === true || !!payload?.data || Array.isArray(payload);
+  if (!ok) throw new Error(payload?.message || "Request failed.");
+
+  const data = payload?.data || payload || {};
+  const items = data.items || data.results || data.bookings || (Array.isArray(data) ? data : []);
+  const totalCount = data.count || data.total || data.total_items || items.length;
+  const totalPages = data.total_pages || (data.count && data.page_size ? Math.max(1, Math.ceil(data.count / data.page_size)) : 1);
+  const serverPaginated = Boolean(data.total_pages || data.page || data.page_size);
+
+  return {
+    items: (items || []).map((b) => ({
+      id: b.id,
+      venueName: b.venue_name || "-",
+      sport: b.sport || b.venue?.sport || "-",
+      date: b.date,
+      time: b.time || b.start_time,
+      durationHours: b.durationHours || b.hours,
+      price: b.price || b.price_total || 0,
+      status: (b.status || "pending").toString(),
+    })),
+    totalPages: totalPages || 1,
+    serverPaginated,
+    totalCount,
+  };
+}
 
 export default function Profile() {
   const [tab, setTab] = useState("info"); // "info" | "bookings"
@@ -30,18 +53,27 @@ export default function Profile() {
 
   // ---- Personal info state
   const [isEditing, setIsEditing] = useState(false);
-  const [form, setForm] = useState(MOCK_USER);
+  const [form, setForm] = useState({ fullName: "", email: "", phone: "", city: "" });
+  const [user, setUser] = useState(null);
+  const [userLoading, setUserLoading] = useState(false);
+  const [userError, setUserError] = useState("");
   const [saveMsg, setSaveMsg] = useState("");
 
   // ---- Bookings state
   const [page, setPage] = useState(1);
 
-  const totalPages = Math.max(1, Math.ceil(MOCK_BOOKINGS.length / PAGE_SIZE));
+  const [bookings, setBookings] = useState([]);
+  const [bookingsLoading, setBookingsLoading] = useState(false);
+  const [bookingsError, setBookingsError] = useState("");
+  const [totalPages, setTotalPages] = useState(1);
+  const [serverPaginated, setServerPaginated] = useState(false);
+  const [bookingsCount, setBookingsCount] = useState(0);
 
   const bookingsPage = useMemo(() => {
+    if (serverPaginated) return bookings;
     const start = (page - 1) * PAGE_SIZE;
-    return MOCK_BOOKINGS.slice(start, start + PAGE_SIZE);
-  }, [page]);
+    return bookings.slice(start, start + PAGE_SIZE);
+  }, [page, bookings, serverPaginated]);
 
   const goToPage = (p) => setPage(Math.max(1, Math.min(totalPages, p)));
 
@@ -59,10 +91,111 @@ export default function Profile() {
     e.preventDefault();
     setSaveMsg("");
 
-    // TODO: call backend
-    setIsEditing(false);
-    setSaveMsg("Profile updated successfully.");
+    const run = async () => {
+      try {
+        const res = await fetch(PROFILE_URL, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            full_name: form.fullName,
+            phone: form.phone,
+            city: form.city,
+          }),
+        });
+
+        const payload = await res.json();
+        if (!payload?.status) throw new Error(payload?.message || "Update failed.");
+
+        const normalized = normalizeUser(payload);
+        setUser(normalized);
+        setForm(normalized);
+        setIsEditing(false);
+        setSaveMsg("Profile updated successfully.");
+      } catch (err) {
+        setSaveMsg("");
+        setUserError(err?.message || "Failed to update profile.");
+      }
+    };
+
+    run();
   };
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const loadUser = async () => {
+      setUserError("");
+      setUserLoading(true);
+      try {
+        const res = await fetch(PROFILE_URL, {
+          method: "GET",
+          headers: { Accept: "application/json" },
+          credentials: "include",
+          signal: controller.signal,
+        });
+        const payload = await res.json();
+        if (!payload?.status) throw new Error(payload?.message || "Failed to load profile.");
+        const normalized = normalizeUser(payload);
+        setUser(normalized);
+        setForm(normalized);
+      } catch (err) {
+        if (err.name === "AbortError") return;
+        setUserError(err?.message || "Failed to load profile.");
+        setUser(null);
+      } finally {
+        setUserLoading(false);
+      }
+    };
+
+    loadUser();
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const loadBookings = async () => {
+      setBookingsError("");
+      setBookingsLoading(true);
+      try {
+        const params = new URLSearchParams();
+        params.set("page_size", PAGE_SIZE);
+        params.set("page", page);
+
+        const res = await fetch(`${BOOKINGS_URL}?${params.toString()}`, {
+          method: "GET",
+          headers: { Accept: "application/json" },
+          credentials: "include",
+          signal: controller.signal,
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const payload = await res.json();
+        const normalized = normalizeBookings(payload);
+
+        setBookings(normalized.items);
+        const derivedTotalPages = normalized.serverPaginated
+          ? normalized.totalPages || 1
+          : Math.max(1, Math.ceil((normalized.totalCount || normalized.items.length) / PAGE_SIZE));
+        setTotalPages(derivedTotalPages);
+        setServerPaginated(normalized.serverPaginated);
+        setBookingsCount(normalized.totalCount || normalized.items.length);
+      } catch (err) {
+        if (err.name === "AbortError") return;
+        setBookingsError(err?.message || "Failed to load bookings.");
+        setBookings([]);
+        setTotalPages(1);
+        setServerPaginated(false);
+        setBookingsCount(0);
+      } finally {
+        setBookingsLoading(false);
+      }
+    };
+
+    loadBookings();
+    return () => controller.abort();
+  }, [page]);
 
   return (
     <div className="profile-page">
@@ -113,7 +246,7 @@ export default function Profile() {
                           className="btn-outline-glass"
                           onClick={() => {
                             setIsEditing(false);
-                            setForm(MOCK_USER);
+                            if (user) setForm(user);
                           }}
                         >
                           Cancel
@@ -125,7 +258,8 @@ export default function Profile() {
                     )}
                   </div>
 
-                  {saveMsg && <Alert variant="success" className="mt-3 mb-0">{saveMsg}</Alert>}
+                  {userError && <Alert variant="danger" className="mt-3 mb-0">{userError}</Alert>}
+                  {saveMsg && !userError && <Alert variant="success" className="mt-3 mb-0">{saveMsg}</Alert>}
 
                   <Form id="profile-form" className="mt-4" onSubmit={onSave}>
                     <Row className="g-3">
@@ -134,7 +268,7 @@ export default function Profile() {
                         <Form.Control
                           className="dark-input"
                           value={form.fullName}
-                          disabled={!isEditing}
+                          disabled={!isEditing || userLoading}
                           onChange={(e) => setForm({ ...form, fullName: e.target.value })}
                         />
                       </Col>
@@ -145,7 +279,7 @@ export default function Profile() {
                           className="dark-input"
                           type="email"
                           value={form.email}
-                          disabled // ایمیل معمولاً قابل تغییر نیست
+                          disabled
                           onChange={(e) => setForm({ ...form, email: e.target.value })}
                         />
                       </Col>
@@ -155,7 +289,7 @@ export default function Profile() {
                         <Form.Control
                           className="dark-input"
                           value={form.phone}
-                          disabled={!isEditing}
+                          disabled={!isEditing || userLoading}
                           onChange={(e) => setForm({ ...form, phone: e.target.value })}
                         />
                       </Col>
@@ -165,12 +299,19 @@ export default function Profile() {
                         <Form.Control
                           className="dark-input"
                           value={form.city}
-                          disabled={!isEditing}
+                          disabled={!isEditing || userLoading}
                           onChange={(e) => setForm({ ...form, city: e.target.value })}
                         />
                       </Col>
                     </Row>
                   </Form>
+
+                  {userLoading && (
+                    <div className="d-flex align-items-center gap-2 text-white-50 mt-3">
+                      <Spinner animation="border" size="sm" role="status" />
+                      <span>Loading profile...</span>
+                    </div>
+                  )}
                 </Card.Body>
               </Card>
             </Col>
@@ -185,7 +326,7 @@ export default function Profile() {
                   </div>
                   <div className="profile-kv">
                     <span className="muted">Bookings</span>
-                    <span className="text-white fw-semibold">{MOCK_BOOKINGS.length}</span>
+                    <span className="text-white fw-semibold">{bookingsCount || bookings.length}</span>
                   </div>
                   <div className="profile-kv">
                     <span className="muted">Status</span>
@@ -212,8 +353,10 @@ export default function Profile() {
                   <div className="muted">Your recent reservations.</div>
                 </div>
 
-                <div className="muted">Page {page} / {totalPages}</div>
+                  <div className="muted">Page {page} / {totalPages}</div>
               </div>
+
+              {bookingsError && <Alert variant="danger" className="mb-3">{bookingsError}</Alert>}
 
               <div className="table-wrap">
                 <Table responsive className="profile-table mb-0" borderless>
@@ -231,18 +374,32 @@ export default function Profile() {
                   </thead>
 
                   <tbody>
-                    {bookingsPage.map((b) => (
-                      <tr key={b.id}>
-                        <td className="muted">#{b.id}</td>
-                        <td className="text-white fw-semibold">{b.venueName}</td>
-                        <td className="muted">{b.sport}</td>
-                        <td className="muted">{b.date}</td>
-                        <td className="muted">{b.time}</td>
-                        <td className="muted">{b.durationHours}</td>
-                        <td className="text-white fw-semibold">${b.price}</td>
-                        <td>{statusBadge(b.status)}</td>
+                    {bookingsLoading ? (
+                      <tr>
+                        <td colSpan={8}>
+                          <div className="d-flex justify-content-center py-4">
+                            <Spinner animation="border" role="status" />
+                          </div>
+                        </td>
                       </tr>
-                    ))}
+                    ) : bookingsPage.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="text-center muted py-4">No bookings found.</td>
+                      </tr>
+                    ) : (
+                      bookingsPage.map((b) => (
+                        <tr key={b.id}>
+                          <td className="muted">#{b.id}</td>
+                          <td className="text-white fw-semibold">{b.venueName}</td>
+                          <td className="muted">{b.sport}</td>
+                          <td className="muted">{b.date}</td>
+                          <td className="muted">{b.time}</td>
+                          <td className="muted">{b.durationHours}</td>
+                          <td className="text-white fw-semibold">${b.price}</td>
+                          <td>{statusBadge(b.status)}</td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </Table>
               </div>

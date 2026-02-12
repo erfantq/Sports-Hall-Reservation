@@ -8,19 +8,64 @@ export default function Register() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [role, setRole] = useState("");
 
   const [error, setError] = useState("");
 
-  const onSubmit = (e) => {
+  const [loading, setLoading] = useState(false);
+
+  const navigate = useNavigate();
+
+  const onSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
-    if (!name || !email || !password) {
+    if (!name || !email || !password || !confirmPassword) {
       setError("Please fill in all fields.");
       return;
     }
 
-    console.log("register:", { name, email, password });
+    if(password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    try {
+      setLoading(true); 
+
+      const res = await fetch(
+        import.meta.env.VITE_API_BASE_URL + "/api/auth/register/",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name,
+            email,
+            password,
+            role,
+          }),
+        }
+      );
+
+      const payload = await res.json();
+
+      if (!payload.status) {
+        throw new Error(payload.message || "Registration failed");
+      }
+
+      console.log("Registration successful:", payload.data);
+
+      navigate("/login");
+    } catch (err) {
+      setError(err.message || "Registration error");
+    } finally {
+      setLoading(false);
+    }
+
+    console.log("register:", { name, email, password, confirmPassword });
   };
 
   return (
@@ -59,7 +104,7 @@ export default function Register() {
               />
             </Form.Group>
 
-            <Form.Group className="mb-2">
+            <Form.Group className="mb-3">
               <Form.Label className="auth-label">Password</Form.Label>
               <Form.Control
                 className="auth-input"
@@ -69,6 +114,30 @@ export default function Register() {
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="new-password"
               />
+            </Form.Group>
+            
+            <Form.Group className="mb-3">
+              <Form.Label className="auth-label">Confirm Password</Form.Label>
+              <Form.Control
+                className="auth-input"
+                type="password"
+                placeholder="Confirm your password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                autoComplete="new-password"
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-2">
+              <Form.Label className="auth-label">Role</Form.Label>
+              <Form.Select
+                className="dark-input"
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+              >
+                <option value="user">User</option>
+                <option value="venue-manager">Venue Manager</option>
+              </Form.Select>
             </Form.Group>
 
             <div className="auth-links">

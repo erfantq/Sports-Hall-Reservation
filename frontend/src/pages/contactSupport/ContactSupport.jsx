@@ -26,8 +26,19 @@ export default function ContactSupport() {
       return setError("Please fill all required fields.");
     }
 
-    // TODO: send to backend
-    setSuccess("Your request has been sent successfully.");
+    const payload = { title: form.title, type: form.type, priority: form.priority, message: form.message }
+    try {
+      const res = await fetch(`/api/support`, {
+        method: "POST",
+        headers: { Accept: "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const response = await res.json();
+      if (!response?.status) throw new Error(response?.message || "Failed to send request.");
+      setSuccess(`Request sent successfully.`);
+    } catch (error) {
+      setError(error.message);
+    }
     setForm({ title: "", type: "Bug", priority: "Medium", message: "" });
   };
 

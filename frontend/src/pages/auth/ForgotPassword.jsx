@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Container, Form, Button, Alert } from "react-bootstrap";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import MyLightRays from "../../components/lightRays/MyLightRays";
 import "./Auth.css";
 
@@ -8,8 +8,11 @@ export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const onSubmit = (e) => {
+  const navigate = useNavigate();
+
+  const onSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setMessage("");
@@ -19,8 +22,37 @@ export default function ForgotPassword() {
       return;
     }
 
-    // TODO: call backend
-    setMessage("If an account exists, a reset link will be sent to your email.");
+    try {
+      setLoading(true);
+      const res = await fetch(
+        import.meta.env.VITE_API_BASE_URL + "/api/auth/forgot-password/",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email,
+          }),
+        }
+      );
+
+      const payload = await res.json();
+
+      if (!payload || !payload.status) {
+        throw new Error(payload.message || "Forgot password failed");
+      }
+
+      setMessage(payload.message);
+
+      console.log("Forgot password successful:", payload.data);
+      navigate("/reset-password", { state: { email } });
+    } catch (error) {
+      setError(error.message || "Forgot password error");
+    } finally {
+      setLoading(false);
+    }
+
   };
 
   return (

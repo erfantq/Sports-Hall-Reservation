@@ -1,27 +1,72 @@
 import React, { useState } from "react";
 import { Container, Form, Button, Alert } from "react-bootstrap";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import MyLightRays from "../../components/lightRays/MyLightRays";
 import "./Auth.css";
 
-export default function Login() {
+export default function  Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const [error, setError] = useState("");
 
-  const onSubmit = (e) => {
+  const [loading, setLoading] = useState(false);
+
+  const navigate = useNavigate();
+
+  const onSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
-    // TODO: call backend
     if (!email || !password) {
       setError("Please fill in email and password.");
       return;
     }
 
-    console.log("login:", { email, password });
+    try {
+      setLoading(true);
+
+      const res = await fetch(
+        import.meta.env.VITE_API_BASE_URL + "/api/auth/login/",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({
+            email,
+            password,
+          }),
+        }
+      );
+
+      const payload = await res.json();
+
+      if (!payload.status) {
+        throw new Error(payload.message || "Login failed");
+      }
+
+      console.log("login success:", payload.data);
+
+      // نمونه ذخیره توکن (بعداً استفاده می‌کنی)
+      // if (payload.data?.access) {
+      //   localStorage.setItem("access_token", payload.data.access);
+      // }
+
+      // if (payload.data?.refresh) {
+      //   localStorage.setItem("refresh_token", payload.data.refresh);
+      // }
+
+      navigate("/");
+
+    } catch (err) {
+      setError(err.message || "Login error");
+    } finally {
+      setLoading(false);
+    }
   };
+
 
   return (
     <div className="auth-page">

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Container, Row, Col, Card, Badge, Button, Form, Alert } from "react-bootstrap";
 import { useParams } from "react-router-dom";
 import { Link } from "react-router-dom";
@@ -38,8 +38,11 @@ export default function VenueDetails() {
 
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-
-  const venue = MOCK_VENUE; // TODO: fetch by id
+  
+  const [venueLoading, setVenueLoading] = useState(false);
+  const [venue, setVenue] = useState(null);
+  
+  // const venue = MOCK_VENUE; // TODO: fetch by id
 
   const slots = useMemo(() => MOCK_SLOTS[selectedDate] || [], [selectedDate]);
 
@@ -54,8 +57,46 @@ export default function VenueDetails() {
 
     // TODO: call backend booking endpoint
     // payload example:
-    // { venue_id: venue.id, date: selectedDate, time: selectedTime, hours }
-    setMessage(`Booked successfully: ${selectedDate} at ${selectedTime} for ${hours} hour(s).`);
+    payload = { venue_id: venue.id, date: selectedDate, time: selectedTime, hours }
+    try {
+      const res = await fetch(`/api/venues/${id}/book`, {
+        method: "POST",
+        headers: { Accept: "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const payload = await res.json();
+      if (!payload?.status) throw new Error(payload?.message || "Failed to book venue.");
+      setMessage(`Booked successfully: ${selectedDate} at ${selectedTime} for ${hours} hour(s).`);
+    } catch (error) {
+      setError(error.message);
+    }
+  };
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setVenueLoading(true);
+    fetchVenue(controller.signal);
+
+    return () => controller.abort();
+  }, [id]);
+
+  const fetchVenue = async (signal) => {
+    try {
+      const res = await fetch(`/api/venues/${id}`, {
+        method: "GET",
+        headers: { Accept: "application/json" },
+        signal: signal,
+      });
+      const payload = await res.json();
+      if (!payload?.status) throw new Error(payload?.message || "Failed to load venue.");
+      const normalized = normalizeVenue(payload);
+      setVenue(normalized);
+    } catch (error) {
+      if (err.name === "AbortError") return;
+      setError(error.message);
+    } finally {
+      setVenueLoading(false);
+    }
   };
 
   return (

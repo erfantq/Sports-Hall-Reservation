@@ -1,6 +1,6 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { FaUsers, FaChartBar, FaShieldAlt } from "react-icons/fa";
+import { FaUsers, FaChartBar, FaShieldAlt , FaBuilding , FaClipboardList } from "react-icons/fa";
 import "./AdminSidebar.css";
 
 export default function AdminSidebar() {
@@ -25,6 +25,16 @@ export default function AdminSidebar() {
         <NavLink to="/admin/users" className={({ isActive }) => `admin-link ${isActive ? "active" : ""}`}>
           <FaUsers className="admin-link-ico" />
           Users
+        </NavLink>
+
+        <NavLink to="/admin/venues" className={({ isActive }) => `admin-link ${isActive ? "active" : ""}`}>
+          <FaBuilding className="admin-link-ico" />
+          Venues
+        </NavLink>
+
+        <NavLink to="/admin/bookings" className={({ isActive }) => `admin-link ${isActive ? "active" : ""}`}>
+          <FaClipboardList className="admin-link-ico" />
+          Bookings
         </NavLink>
       </nav>
 
