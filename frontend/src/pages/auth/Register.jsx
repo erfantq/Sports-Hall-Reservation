@@ -9,7 +9,7 @@ export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [role, setRole] = useState("");
+  const [role, setRole] = useState("user");
 
   const [error, setError] = useState("");
 
@@ -35,7 +35,7 @@ export default function Register() {
       setLoading(true); 
 
       const res = await fetch(
-        import.meta.env.VITE_API_BASE_URL + "/api/auth/register/",
+        import.meta.env.VITE_API_BASE_URL + "/api/register/",
         {
           method: "POST",
           headers: {
