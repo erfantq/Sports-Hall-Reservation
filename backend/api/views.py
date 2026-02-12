@@ -1,10 +1,14 @@
+import random
+from django.core.mail import send_mail
 from rest_framework import generics, filters, permissions, status
 from rest_framework.views import APIView
 from django.db.models import Count
-from .models import Hall, Booking, User, ContactMessage
+from .models import Hall, Booking, User, ContactMessage, PasswordResetCode
 from rest_framework.response import Response
-from .serializers import HallSerializer, BookingReadSerializer, BookingCreateSerializer, RegisterSerializer, UserSerializer, ContactMessageSerializer
+from .serializers import HallSerializer, BookingReadSerializer, BookingCreateSerializer, RegisterSerializer, UserSerializer, ContactMessageSerializer, ForgotPasswordSerializer, VerifyResetCodeSerializer
 from .permissions import IsHallAdmin
+from .utils import api_response
+from django.utils import timezone
 
 class HallListView(generics.ListAPIView):
     queryset = Hall.objects.all()
@@ -96,3 +100,53 @@ class SystemStatsView(APIView):
             "bookings_per_hall": Hall.objects.annotate(num_bookings=Count('bookings')).values('name', 'num_bookings')
         }
         return Response(stats)
+    
+class ForgotPasswordView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        serializer = ForgotPasswordSerializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data['email']
+            if User.objects.filter(email=email).exists():
+                code = str(random.randint(100000, 999999))
+                
+                PasswordResetCode.objects.update_or_create(
+                    email=email, defaults={'code': code, 'created_at': timezone.now()}
+                )
+
+                send_mail(
+                    'کد تایید فراموشی رمز عبور',
+                    f'کد تایید شما: {code}',
+                    'noreply@yourdomain.com',
+                    [email],
+                    fail_silently=False,
+                )
+                return api_response(message="کد تایید به ایمیل شما ارسال شد.")
+            
+            return api_response(message="کاربری با این ایمیل یافت نشد.", status_code=404)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class VerifyResetCodeView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        serializer = VerifyResetCodeSerializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data['email']
+            code = serializer.validated_data['code']
+            new_password = serializer.validated_data['new_password']
+
+            reset_entry = PasswordResetCode.objects.filter(email=email, code=code).first()
+            
+            if reset_entry and reset_entry.is_valid():
+                user = User.objects.get(email=email)
+                user.set_password(new_password)
+                user.save()
+                
+                reset_entry.delete()
+                
+                return api_response(message="رمز عبور شما با موفقیت تغییر کرد.")
+            
+            return api_response(message="کد نامعتبر است یا منقضی شده است.", status_code=400)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

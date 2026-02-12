@@ -6,6 +6,7 @@ from .views import (
     RegisterView, UserProfileView,
     HallAdminBookingListView, UpdateBookingStatusView,
     ContactCreateView, SystemStatsView,
+    ForgotPasswordView, VerifyResetCodeView
 )
 
 
@@ -27,4 +28,7 @@ urlpatterns = [
 
     path('contact/', ContactCreateView.as_view(), name='contact-create'),
     path('system/stats/', SystemStatsView.as_view(), name='system-stats'),
+
+    path('forgot-password/', ForgotPasswordView.as_view(), name='forgot_password'),
+    path('verify-code/', VerifyResetCodeView.as_view(), name='verify_code'),
 ]
