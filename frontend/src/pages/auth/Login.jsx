@@ -5,7 +5,7 @@ import MyLightRays from "../../components/lightRays/MyLightRays";
 import "./Auth.css";
 
 export default function  Login() {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
   const [error, setError] = useState("");
@@ -18,8 +18,8 @@ export default function  Login() {
     e.preventDefault();
     setError("");
 
-    if (!email || !password) {
-      setError("Please fill in email and password.");
+    if (!username || !password) {
+      setError("Please fill in username and password.");
       return;
     }
 
@@ -35,7 +35,7 @@ export default function  Login() {
             Accept: "application/json",
           },
           body: JSON.stringify({
-            email,
+            username,
             password,
           }),
         }
@@ -83,14 +83,14 @@ export default function  Login() {
 
           <Form onSubmit={onSubmit}>
             <Form.Group className="mb-3">
-              <Form.Label className="auth-label">Email</Form.Label>
+              <Form.Label className="auth-label">Username</Form.Label>
               <Form.Control
                 className="auth-input"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoComplete="email"
+                type="text"
+                placeholder="Your username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                autoComplete="username"
               />
             </Form.Group>
 

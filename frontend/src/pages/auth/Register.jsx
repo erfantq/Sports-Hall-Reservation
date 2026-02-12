@@ -5,7 +5,7 @@ import MyLightRays from "../../components/lightRays/MyLightRays";
 import "./Auth.css";
 
 export default function Register() {
-  const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -21,7 +21,7 @@ export default function Register() {
     e.preventDefault();
     setError("");
 
-    if (!name || !email || !password || !confirmPassword) {
+    if (!username || !email || !password || !confirmPassword) {
       setError("Please fill in all fields.");
       return;
     }
@@ -29,7 +29,7 @@ export default function Register() {
     if(password !== confirmPassword) {
       setError("Passwords do not match.");
       return;
-    }
+    } 
 
     try {
       setLoading(true); 
@@ -42,7 +42,7 @@ export default function Register() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            name,
+            username,
             email,
             password,
             role,
@@ -65,7 +65,7 @@ export default function Register() {
       setLoading(false);
     }
 
-    console.log("register:", { name, email, password, confirmPassword });
+    console.log("register:", { username, email, password, confirmPassword });
   };
 
   return (
@@ -82,13 +82,13 @@ export default function Register() {
 
           <Form onSubmit={onSubmit}>
             <Form.Group className="mb-3">
-              <Form.Label className="auth-label">Full name</Form.Label>
+              <Form.Label className="auth-label">Username </Form.Label>
               <Form.Control
                 className="auth-input"
-                placeholder="Your name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                autoComplete="name"
+                placeholder="Your username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                autoComplete="username"
               />
             </Form.Group>
 
