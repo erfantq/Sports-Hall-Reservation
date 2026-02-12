@@ -3,8 +3,16 @@ import { Navbar, Container, Nav } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import logo from "../../assets/logo.png";
 import "./MyNavbar.css";
+import { useNavigate } from "react-router-dom";
 
 function MyNavbar() {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem("access_token");
+    navigate("/login");
+  };
+
   return (
     <Navbar
       expand="md"
@@ -28,14 +36,23 @@ function MyNavbar() {
           </Nav>
 
           {/* Right side (desktop): auth links */}
-          <Nav className="ms-auto nav-auth">
-            <Nav.Link as={Link} to="/login" className="nav-auth-link">
-              Login
-            </Nav.Link>
-            <Nav.Link as={Link} to="/register" className="nav-auth-link">
-              Register
-            </Nav.Link>
-          </Nav>
+          {localStorage.getItem("access_token") && (
+            <Nav className="ms-auto nav-auth">
+              <Nav.Link onClick={handleLogout} className="nav-auth-link">
+                Logout
+              </Nav.Link>
+            </Nav>
+          )}
+          {!localStorage.getItem("access_token") && (
+            <Nav className="ms-auto nav-auth">
+              <Nav.Link as={Link} to="/login" className="nav-auth-link">
+                Login
+              </Nav.Link>
+              <Nav.Link as={Link} to="/register" className="nav-auth-link">
+                Register
+              </Nav.Link>
+            </Nav>
+          )}
         </Navbar.Collapse>
       </Container>
     </Navbar>
