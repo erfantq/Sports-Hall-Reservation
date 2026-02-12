@@ -4,18 +4,17 @@ import { useNavigate } from "react-router-dom";
 import "./Profile.css";
 
 const PAGE_SIZE = 6;
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
-const PROFILE_URL = import.meta.env.VITE_API_PROFILE_URL || `${API_BASE}/api/users/me/`;
-const BOOKINGS_URL = import.meta.env.VITE_API_MY_BOOKINGS_URL || `${API_BASE}/api/bookings/my/`;
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
+const PROFILE_URL = `${API_BASE}/api/profile/`;
+const BOOKINGS_URL = `${API_BASE}/api/bookings/my-history/`;
 
 function normalizeUser(payload) {
   const data = payload?.data || payload || {};
-  const user = data.user || data;
+  const user = data;
   return {
-    fullName: user.fullName || "",
+    username: user.username || "",
     email: user.email || "",
-    phone: user.phone || "",
-    city: user.city || "",
+    role: user.role || "",
   };
 }
 
@@ -32,12 +31,12 @@ function normalizeBookings(payload) {
   return {
     items: (items || []).map((b) => ({
       id: b.id,
-      venueName: b.venue_name || "-",
-      sport: b.sport || b.venue?.sport || "-",
+      venueName: b.hallName || "-",
+      sport: b.sport || "-",
       date: b.date,
-      time: b.time || b.start_time,
-      durationHours: b.durationHours || b.hours,
-      price: b.price || b.price_total || 0,
+      time: b.time,
+      durationHours: b.durationHours,
+      price: b.price || 0,
       status: (b.status || "pending").toString(),
     })),
     totalPages: totalPages || 1,
@@ -53,7 +52,7 @@ export default function Profile() {
 
   // ---- Personal info state
   const [isEditing, setIsEditing] = useState(false);
-  const [form, setForm] = useState({ fullName: "", email: "", phone: "", city: "" });
+  const [form, setForm] = useState({ username: "", email: "", role: "" });  
   const [user, setUser] = useState(null);
   const [userLoading, setUserLoading] = useState(false);
   const [userError, setUserError] = useState("");
@@ -98,12 +97,13 @@ export default function Profile() {
           headers: {
             "Content-Type": "application/json",
             Accept: "application/json",
+            Authorization: `Bearer ${localStorage.getItem('access_token')}`
           },
           credentials: "include",
           body: JSON.stringify({
-            full_name: form.fullName,
-            phone: form.phone,
-            city: form.city,
+            username: form.username,
+            email: form.email,
+            role: form.role,
           }),
         });
 
@@ -118,6 +118,9 @@ export default function Profile() {
       } catch (err) {
         setSaveMsg("");
         setUserError(err?.message || "Failed to update profile.");
+      } finally {
+        setUserLoading(false);
+        setUserError("");
       }
     };
 
@@ -132,7 +135,7 @@ export default function Profile() {
       try {
         const res = await fetch(PROFILE_URL, {
           method: "GET",
-          headers: { Accept: "application/json" },
+          headers: { Accept: "application/json", Authorization: `Bearer ${localStorage.getItem("access_token")}` },
           credentials: "include",
           signal: controller.signal,
         });
@@ -166,7 +169,7 @@ export default function Profile() {
 
         const res = await fetch(`${BOOKINGS_URL}?${params.toString()}`, {
           method: "GET",
-          headers: { Accept: "application/json" },
+          headers: { Accept: "application/json", Authorization: `Bearer ${localStorage.getItem("access_token")}` },
           credentials: "include",
           signal: controller.signal,
         });
@@ -264,12 +267,12 @@ export default function Profile() {
                   <Form id="profile-form" className="mt-4" onSubmit={onSave}>
                     <Row className="g-3">
                       <Col md={6}>
-                        <Form.Label className="form-label-dark">Full name</Form.Label>
+                        <Form.Label className="form-label-dark">Username</Form.Label>
                         <Form.Control
                           className="dark-input"
-                          value={form.fullName}
+                          value={form.username}
                           disabled={!isEditing || userLoading}
-                          onChange={(e) => setForm({ ...form, fullName: e.target.value })}
+                          onChange={(e) => setForm({ ...form, username: e.target.value })}
                         />
                       </Col>
 
@@ -279,28 +282,18 @@ export default function Profile() {
                           className="dark-input"
                           type="email"
                           value={form.email}
-                          disabled
+                          disabled={!isEditing || userLoading}
                           onChange={(e) => setForm({ ...form, email: e.target.value })}
                         />
                       </Col>
 
-                      <Col md={6}>
-                        <Form.Label className="form-label-dark">Phone</Form.Label>
+                      <Col md={12}>
+                        <Form.Label className="form-label-dark">Role</Form.Label>
                         <Form.Control
                           className="dark-input"
-                          value={form.phone}
-                          disabled={!isEditing || userLoading}
-                          onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                        />
-                      </Col>
-
-                      <Col md={6}>
-                        <Form.Label className="form-label-dark">City</Form.Label>
-                        <Form.Control
-                          className="dark-input"
-                          value={form.city}
-                          disabled={!isEditing || userLoading}
-                          onChange={(e) => setForm({ ...form, city: e.target.value })}
+                          value={form.role}
+                          disabled
+                          onChange={(e) => setForm({ ...form, role: e.target.value })}
                         />
                       </Col>
                     </Row>
@@ -362,7 +355,6 @@ export default function Profile() {
                 <Table responsive className="profile-table mb-0" borderless>
                   <thead>
                     <tr>
-                      <th>ID</th>
                       <th>Venue</th>
                       <th>Sport</th>
                       <th>Date</th>
@@ -389,7 +381,6 @@ export default function Profile() {
                     ) : (
                       bookingsPage.map((b) => (
                         <tr key={b.id}>
-                          <td className="muted">#{b.id}</td>
                           <td className="text-white fw-semibold">{b.venueName}</td>
                           <td className="muted">{b.sport}</td>
                           <td className="muted">{b.date}</td>

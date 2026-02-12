@@ -7,6 +7,14 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'username', 'email', 'role', 'phone_number']
+        read_only_fields = ['id']
+
+        def validate_role(self, value):
+                if value == 'sys_admin' or value == 'venue-manager':
+                    raise serializers.ValidationError("شما نمی‌توانید نقش خود را به مدیر سیستم و مدیر سالن تغییر دهید.")
+                return value
+
+
 
 class HallSerializer(serializers.ModelSerializer):
     pricePerHour = serializers.IntegerField(source='price_per_hour')
@@ -15,7 +23,7 @@ class HallSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Hall
-        fields = ['id', 'name', 'city', 'pricePerHour', 'rating', 'image', 'tags']
+        fields = ['id', 'name', 'city', 'pricePerHour', 'rating', 'image', 'sport', 'tags']
 
     def get_tags(self, obj):
         if obj.amenities:

@@ -11,11 +11,21 @@ from .utils import api_response
 from django.utils import timezone
 
 class HallListView(generics.ListAPIView):
-    queryset = Hall.objects.all()
-    serializer_class = HallSerializer
-    
+    serializer_class = HallSerializer    
     filter_backends = [filters.SearchFilter]
     search_fields = ['name', 'location', 'amenities', 'city', 'sport']
+
+
+    def get_queryset(self):
+
+        queryset = Hall.objects.all()
+        
+        sport_param = self.request.query_params.get('sport', None)
+        
+        if sport_param:
+            queryset = queryset.filter(sport__iexact=sport_param)
+            
+        return queryset
 
 class HallDetailView(generics.RetrieveAPIView):
     queryset = Hall.objects.all()
@@ -55,6 +65,11 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         return self.request.user 
+    
+    def update(self, request, *args, **kwargs):
+        response = super().update(request, *args, **kwargs)
+        response.data['message'] = "پروفایل شما با موفقیت بروزرسانی شد."
+        return response
     
 
 class HallAdminBookingListView(generics.ListAPIView):

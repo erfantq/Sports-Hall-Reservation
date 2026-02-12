@@ -15,7 +15,7 @@ import { Link } from "react-router-dom";
 
 
 const API_URL =
-  import.meta.env.VITE_API_VENUES_URL || "http://localhost:8000/api/venues";
+  import.meta.env.VITE_API_BASE_URL + "/api/halls";
 
 function normalizeResponse(payload) {
   const ok = payload?.status === true;
@@ -32,6 +32,9 @@ function normalizeResponse(payload) {
 
 export default function VenuesSection() {
     const hScrollRef = useRef(null);
+    const searchRef = useRef(null);
+
+    const defaultImage = "https://images.unsplash.com/photo-1519861531473-9200262188bf?auto=format&fit=crop&w=1200&q=60";
 
     const scrollByCard = (dir) => {
       const el = hScrollRef.current;
@@ -51,8 +54,7 @@ export default function VenuesSection() {
 
   const abortRef = useRef(null);
 
-  // ✅ ثابت: همون 6 تا
-  const page = 1;
+  let page = 1;
   const pageSize = 6;
 
   useEffect(() => {
@@ -71,7 +73,7 @@ export default function VenuesSection() {
         if (query.trim()) params.set("search", query.trim());
         if (sport !== "All") params.set("sport", sport);
 
-        const USE_MOCK = true;
+        const USE_MOCK = false;
 
         let payload;
         if (USE_MOCK) {
@@ -94,7 +96,6 @@ export default function VenuesSection() {
         const normalized = normalizeResponse(payload);
         if (!normalized.ok) throw new Error(normalized.message);
 
-        // فقط 6 آیتم برای ردیف افقی
         setItems(normalized.items.slice(0, pageSize));
       } catch (e) {
         if (e?.name === "AbortError") return;
@@ -105,9 +106,11 @@ export default function VenuesSection() {
       }
     };
 
-    run();
+    const delay = query.trim() ? 500 : 0;
+    const t = setTimeout(run, delay);
 
     return () => {
+      clearTimeout(t);
       if (abortRef.current) abortRef.current.abort();
     };
   }, [query, sport]);
@@ -116,6 +119,12 @@ export default function VenuesSection() {
     const s = new Set(items.map((v) => v?.sport).filter(Boolean));
     return ["All", ...Array.from(s)];
   }, [items]);
+
+  useEffect(() => {
+    if (!loading) {
+      searchRef.current?.focus();
+    }
+  }, [loading]);
 
   return (
     <div className="venues-section">
@@ -128,6 +137,7 @@ export default function VenuesSection() {
 
           <div className="d-flex flex-wrap gap-2">
             <Form.Control
+              ref={searchRef}
               className="venues-search"
               placeholder="Search by name or city..."
               value={query}
@@ -176,26 +186,29 @@ export default function VenuesSection() {
       <div key={v.id} className="venues-snap-card">
         <Card className="venue-card h-100 border-0">
           <div className="venue-image-wrap">
-            <img src={v.image} alt={v.name} className="venue-image" />
+            <img src={v.image ?? defaultImage} alt={v.name} className="venue-image" />
           </div>
 
-          <Card.Body>
-            <div className="d-flex justify-content-between align-items-start">
-              <div>
-                <Card.Title className="text-white mb-1">{v.name}</Card.Title>
-                <div className="text-white-50 small">
-                  {v.city} • {v.sport}
+          <Card.Body className="d-flex flex-column justify-content-between">
+            <div>
+              <div className="d-flex justify-content-between align-items-start">
+                <div>
+                  <Card.Title className="text-white mb-1">{v.name}</Card.Title>
+                  <div className="text-white-50 small">
+                    {v.city} • {v.sport}
+                  </div>
                 </div>
+                <Badge bg="secondary">{v.rating}</Badge>
               </div>
-              <Badge bg="secondary">{v.rating}</Badge>
-            </div>
 
-            <div className="d-flex flex-wrap gap-2 mt-3">
-              {(v.tags || []).map((t) => (
-                <Badge key={t} bg="dark" text="light" className="venue-tag">
-                  {t}
-                </Badge>
-              ))}
+              <div className="d-flex flex-wrap gap-2 mt-3">
+                {(v.tags || []).map((t) => (
+                  <Badge key={t} bg="dark" text="light" className="venue-tag">
+                    {t}
+                  </Badge>
+                ))}
+              </div>
+
             </div>
 
             <div className="d-flex justify-content-between align-items-center mt-4">
