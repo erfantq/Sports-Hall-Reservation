@@ -5,8 +5,7 @@ from django.conf import settings
 class User(AbstractUser):
     ROLE_CHOICES = (
         ('user', 'کاربر عادی'),
-        ('hall_admin', 'مدیر سالن'),
-        ('sys_admin', 'مدیر سیستم'),
+        ('venue-manager', 'مدیر سالن'),
     )
     
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='user', verbose_name="نقش کاربر")
@@ -25,9 +24,15 @@ class Hall(models.Model):
     )
     
     name = models.CharField(max_length=100, verbose_name="نام سالن")
-    location = models.CharField(max_length=255, verbose_name="موقعیت مکانی")
+    city = models.CharField(max_length=100, default="مشهد", verbose_name="شهر")
+    sport = models.CharField(max_length=100, default="فوتبال", verbose_name="ورزش")
+    location = models.CharField(max_length=255, verbose_name="آدرس دقیق")
     capacity = models.PositiveIntegerField(verbose_name="ظرفیت نفرات")
-    amenities = models.TextField(verbose_name="امکانات", help_text="امکانات را با ویرگول جدا کنید")
+    price_per_hour = models.PositiveIntegerField(default=100000, verbose_name="قیمت هر ساعت (تومان)")
+    
+    rating = models.FloatField(default=5.0, verbose_name="امتیاز")
+
+    amenities = models.TextField(verbose_name="امکانات", help_text="امکانات را با کاما (,) جدا کنید. مثال: دوش, بوفه, پارکینگ")
     image = models.ImageField(upload_to='halls/', blank=True, null=True, verbose_name="تصویر سالن")
     
     def __str__(self):
@@ -62,3 +67,13 @@ class Booking(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.hall.name} ({self.date})"
+    
+class ContactMessage(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name="فرستنده")
+    subject = models.CharField(max_length=200, verbose_name="موضوع")
+    message = models.TextField(verbose_name="متن پیام")
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False, verbose_name="خوانده شده؟")
+
+    def __str__(self):
+        return f"{self.user.username}: {self.subject}"
