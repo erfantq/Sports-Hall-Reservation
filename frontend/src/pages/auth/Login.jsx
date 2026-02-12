@@ -49,10 +49,9 @@ export default function  Login() {
 
       console.log("login success:", payload.data);
 
-      // نمونه ذخیره توکن (بعداً استفاده می‌کنی)
-      // if (payload.data?.access) {
-      //   localStorage.setItem("access_token", payload.data.access);
-      // }
+      if (payload.data?.access) {
+        localStorage.setItem("access_token", payload.data.access);
+      }
 
       // if (payload.data?.refresh) {
       //   localStorage.setItem("refresh_token", payload.data.refresh);
