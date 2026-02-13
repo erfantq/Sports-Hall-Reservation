@@ -5,8 +5,8 @@ from rest_framework.views import APIView
 from django.db.models import Count
 from .models import Hall, Booking, User, ContactMessage, PasswordResetCode
 from rest_framework.response import Response
-from .serializers import HallSerializer, HallDetailSerializer, BookingReadSerializer, BookingCreateSerializer, RegisterSerializer, UserSerializer, ContactMessageSerializer, ForgotPasswordSerializer, VerifyResetCodeSerializer
-from .permissions import IsHallAdmin
+from .serializers import UserManagementSerializer, HallSerializer, HallDetailSerializer, BookingReadSerializer, BookingCreateSerializer, BookingStatusUpdateSerializer, RegisterSerializer, UserSerializer, ContactMessageSerializer, ForgotPasswordSerializer, VerifyResetCodeSerializer
+from .permissions import IsHallAdmin, IsSystemAdmin
 from .utils import api_response
 from django.utils import timezone
 from .pagination import StandardPagination
@@ -85,12 +85,12 @@ class HallAdminBookingListView(generics.ListAPIView):
 
 class UpdateBookingStatusView(generics.UpdateAPIView):
     queryset = Booking.objects.all()
-    serializer_class = BookingCreateSerializer
+    serializer_class = BookingStatusUpdateSerializer
     permission_classes = [IsHallAdmin]
 
     def get_queryset(self):
         return Booking.objects.filter(hall__manager=self.request.user)
-
+   
     def perform_update(self, serializer):
         serializer.save()
 
@@ -169,3 +169,46 @@ class VerifyResetCodeView(APIView):
             
             return api_response(message="کد نامعتبر است یا منقضی شده است.", status_code=400)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+class UserListCreateView(generics.ListCreateAPIView):
+    queryset = User.objects.all().order_by('id')
+    serializer_class = UserManagementSerializer
+    pagination_class = StandardPagination
+    permission_classes = [IsSystemAdmin]
+
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['username', 'email']
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        
+        role_param = self.request.query_params.get('role')
+        if role_param:
+            queryset = queryset.filter(role=role_param)
+
+        active_param = self.request.query_params.get('is_active')
+        if active_param is not None:
+            is_active = active_param.lower() == 'true'
+            queryset = queryset.filter(is_active=is_active)
+
+        return queryset
+    
+    def perform_create(self, serializer):
+        serializer.save()
+
+class UserDetailUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserManagementSerializer
+    lookup_field = 'id'
+    permission_classes = [IsSystemAdmin]
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        user_id = instance.id
+        self.perform_destroy(instance)
+        return Response({
+            "status": True,
+            "message": "کاربر با موفقیت حذف شد.",
+            "data": {"id": user_id}
+        }, status=status.HTTP_200_OK)

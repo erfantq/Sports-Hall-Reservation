@@ -2,6 +2,39 @@ from rest_framework import serializers
 from .models import User, Hall, Booking, User, ContactMessage
 from django.db.models import Q
 from datetime import datetime, timedelta, time, date
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
+class UserManagementSerializer(serializers.ModelSerializer):
+    created_at = serializers.DateTimeField(format="%Y-%m-%d", read_only=True)
+
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email', 'role', 'is_active', 'created_at']
+
+
+    def create(self, validated_data):
+        username = validated_data.get('username')
+        password= validated_data.get('password', '1234')
+        email = validated_data.get('email')
+        role = validated_data.get('role', 'user')
+        is_active = validated_data.get('is_active', True)
+
+        user = User.objects.create_user(
+            username=username,
+            email=email,
+            password=password,
+            role=role,
+            is_active=is_active
+        )
+        return user
+
+
+    def update(self, instance, validated_data):
+        if 'username' in validated_data:
+            instance.username = validated_data.get('username', instance.username)
+        return super().update(instance, validated_data)
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -38,9 +71,7 @@ class HallSerializer(serializers.ModelSerializer):
             return [tag.strip() for tag in obj.amenities.replace('،', ',').split(',') if tag.strip()]
         return []
     
-from rest_framework import serializers
-from .models import Hall, Booking
-from datetime import datetime, timedelta, time, date
+
 
 class HallDetailSerializer(serializers.ModelSerializer):
     pricePerHour = serializers.IntegerField(source='price_per_hour')
@@ -153,6 +184,18 @@ class BookingReadSerializer(serializers.ModelSerializer):
         hours = self.get_durationHours(obj)
         return int(hours * obj.hall.price_per_hour)
 
+
+class BookingStatusUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Booking
+        fields = ['id', 'status', 'user', 'hall', 'date', 'start_time', 'end_time']
+        read_only_fields = ['id', 'user', 'hall', 'date', 'start_time', 'end_time']
+
+    def validate_status(self, value):
+        if value not in ['confirmed', 'cancelled']:
+            raise serializers.ValidationError("وضعیت ارسالی باید confirmed یا cancelled باشد.")
+        return value
+
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
 
@@ -160,12 +203,24 @@ class RegisterSerializer(serializers.ModelSerializer):
         model = User
         fields = ('username', 'password', 'email', 'role', 'phone_number')
 
+
+
+    def validate_role(self, value):
+        if value == 'sys-admin':
+            raise serializers.ValidationError("انتخاب نقش مدیر سیستم در ثبت‌نام غیرمجاز است.")
+        return value
+    
     def create(self, validated_data):
+
+        role = validated_data.get('role', 'user')
+        if role == 'sys-admin':
+            role = 'user'
+
         user = User.objects.create_user(
             username=validated_data['username'],
             password=validated_data['password'],
             email=validated_data.get('email', ''),
-            role=validated_data.get('role', 'user'),
+            role=role,
             phone_number=validated_data.get('phone_number', '')
         )
         return user
@@ -174,8 +229,8 @@ class RegisterSerializer(serializers.ModelSerializer):
 class ContactMessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = ContactMessage
-        fields = ['id', 'user', 'subject', 'message', 'created_at']
-        read_only_fields = ['user']
+        fields = ['id', 'user', 'subject', 'message','type', 'priority', 'created_at']
+        read_only_fields = ['user', 'created_at']
 
 class ForgotPasswordSerializer(serializers.Serializer):
     email = serializers.EmailField()

@@ -6,7 +6,8 @@ from .views import (
     RegisterView, UserProfileView,
     HallAdminBookingListView, UpdateBookingStatusView,
     ContactCreateView, SystemStatsView,
-    ForgotPasswordView, VerifyResetCodeView
+    ForgotPasswordView, VerifyResetCodeView,
+    UserListCreateView, UserDetailUpdateDeleteView
 )
 
 
@@ -27,8 +28,13 @@ urlpatterns = [
     path('admin-halls/bookings/<int:pk>/status/', UpdateBookingStatusView.as_view(), name='update-booking-status'),
 
     path('contact/', ContactCreateView.as_view(), name='contact-create'),
-    path('system/stats/', SystemStatsView.as_view(), name='system-stats'),
 
     path('forgot-password/', ForgotPasswordView.as_view(), name='forgot_password'),
     path('verify-code/', VerifyResetCodeView.as_view(), name='verify_code'),
+
+    path('system/stats/', SystemStatsView.as_view(), name='system-stats'),
+
+    path('users/', UserListCreateView.as_view(), name='user-list'),
+    path('users/<int:id>/', UserDetailUpdateDeleteView.as_view(), name='user-detail-update-delete'),
+
 ]

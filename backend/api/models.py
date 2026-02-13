@@ -8,6 +8,7 @@ class User(AbstractUser):
     ROLE_CHOICES = (
         ('user', 'کاربر عادی'),
         ('venue-manager', 'مدیر سالن'),
+        ('sys-admin', 'مدیر سیستم'),
     )
     
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='user', verbose_name="نقش کاربر")
@@ -76,9 +77,28 @@ class Booking(models.Model):
         return f"{self.user.username} - {self.hall.name} ({self.date})"
     
 class ContactMessage(models.Model):
+
+    TYPE_CHOICES = (
+        ('bug', 'خطا'),
+        ('payment', 'پرداخت'),
+        ('venue', 'سالن ها'),
+        ('account', 'حساب کاربری'),
+        ('other', 'سایر'),
+    )
+    
+    PRIORITY_CHOICES = (
+        ('low', 'کم'),
+        ('medium', 'متوسط'),
+        ('high', 'فوری'),
+    )
+
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name="فرستنده")
     subject = models.CharField(max_length=200, verbose_name="موضوع")
     message = models.TextField(verbose_name="متن پیام")
+    type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='Bug', verbose_name="نوع پیام")
+
+    priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default='medium', verbose_name="اولویت")
+
     created_at = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False, verbose_name="خوانده شده؟")
 
