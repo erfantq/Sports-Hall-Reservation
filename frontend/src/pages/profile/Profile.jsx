@@ -269,7 +269,7 @@ export default function Profile() {
                       <Col md={6}>
                         <Form.Label className="form-label-dark">Username</Form.Label>
                         <Form.Control
-                          className="dark-input"
+                          className={`dark-input ${isEditing ? "edit-outline" : ""}`}
                           value={form.username}
                           disabled={!isEditing || userLoading}
                           onChange={(e) => setForm({ ...form, username: e.target.value })}
@@ -279,7 +279,7 @@ export default function Profile() {
                       <Col md={6}>
                         <Form.Label className="form-label-dark">Email</Form.Label>
                         <Form.Control
-                          className="dark-input"
+                          className={`dark-input ${isEditing ? "edit-outline" : ""}`}
                           type="email"
                           value={form.email}
                           disabled={!isEditing || userLoading}

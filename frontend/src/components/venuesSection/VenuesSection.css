@@ -100,6 +100,7 @@
 .venues-arrow-left  { left: -10px; }
 .venues-arrow-right { right: -10px; }
 
+
 /* موبایل */
 @media (max-width: 576px) {
   .venues-arrow {

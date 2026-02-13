@@ -17,18 +17,43 @@ import { Link } from "react-router-dom";
 const API_URL =
   import.meta.env.VITE_API_BASE_URL + "/api/halls";
 
+// function normalizeResponse(payload) {
+//   const ok = payload?.status === true;
+//   if (!ok) {
+//     return { ok: false, message: payload?.message || "Request failed.", items: [], totalPages: 1 };
+//   }
+
+//   const d = payload?.data ?? {};
+//   const items =
+//     d.results || d.items || d.venues || d.data || d.list || (Array.isArray(d) ? d : []);
+
+//   return { ok: true, message: payload?.message || "", items: Array.isArray(items) ? items : [], totalPages: 1 };
+// }
+
 function normalizeResponse(payload) {
   const ok = payload?.status === true;
   if (!ok) {
-    return { ok: false, message: payload?.message || "Request failed.", items: [], totalPages: 1 };
+    return {
+      ok: false,
+      message: payload?.message || "Request failed.",
+      items: [],
+      totalPages: 1,
+      page: 1,
+    };
   }
 
-  const d = payload?.data ?? {};
-  const items =
-    d.results || d.items || d.venues || d.data || d.list || (Array.isArray(d) ? d : []);
+  const d = payload?.data;
+  const items = d
 
-  return { ok: true, message: payload?.message || "", items: Array.isArray(items) ? items : [], totalPages: 1 };
+  return {
+    ok: true,
+    message: payload?.message || "",
+    items: items,
+    totalPages: Number(payload?.total_pages || 1),
+    page: Number(payload?.page || 1),
+  };
 }
+
 
 export default function VenuesSection() {
     const hScrollRef = useRef(null);
@@ -53,9 +78,18 @@ export default function VenuesSection() {
   const [error, setError] = useState("");
 
   const abortRef = useRef(null);
+  const prefetchTargetRef = useRef(null);
+  const observerRef = useRef(null);
 
-  let page = 1;
+
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const pageSize = 6;
+
+  useEffect(() => {
+    setPage(1);
+  }, [query, sport]);
+
 
   useEffect(() => {
     const run = async () => {
@@ -96,7 +130,21 @@ export default function VenuesSection() {
         const normalized = normalizeResponse(payload);
         if (!normalized.ok) throw new Error(normalized.message);
 
-        setItems(normalized.items.slice(0, pageSize));
+        // setItems(normalized.items.slice(0, pageSize));
+
+        setTotalPages(normalized.totalPages);
+
+        setItems((prev) => {
+          if (page === 1) return normalized.items;
+
+          const seen = new Set(prev.map((x) => x.id));
+          const merged = [...prev];
+          for (const it of normalized.items) {
+            if (!seen.has(it.id)) merged.push(it);
+          }
+          return merged;
+        });
+
       } catch (e) {
         if (e?.name === "AbortError") return;
         setError(e?.message || "Failed to load venues.");
@@ -113,12 +161,40 @@ export default function VenuesSection() {
       clearTimeout(t);
       if (abortRef.current) abortRef.current.abort();
     };
-  }, [query, sport]);
+  }, [query, sport, page]);
 
   const sports = useMemo(() => {
     const s = new Set(items.map((v) => v?.sport).filter(Boolean));
     return ["All", ...Array.from(s)];
   }, [items]);
+
+  useEffect(() => {
+    if (loading) return;
+    if (page >= totalPages) return;
+
+    const el = prefetchTargetRef.current;
+    if (!el) return;
+
+    observerRef.current?.disconnect();
+
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setPage((p) => (p < totalPages ? p + 1 : p));
+        }
+      },
+      {
+        root: hScrollRef.current, // ✅ چون اسکرول افقی داخل همین div است
+        threshold: 0.6,
+      }
+    );
+
+    obs.observe(el);
+    observerRef.current = obs;
+
+    return () => obs.disconnect();
+  }, [items, loading, page, totalPages]);
+
 
   useEffect(() => {
     if (!loading) {
@@ -134,6 +210,7 @@ export default function VenuesSection() {
             <h2 className="text-white mb-1">Available Venues</h2>
             <p className="text-white-50 mb-0">Swipe to explore venues.</p>
           </div>
+
 
           <div className="d-flex flex-wrap gap-2">
             <Form.Control
@@ -182,8 +259,8 @@ export default function VenuesSection() {
 </button>
 
   <div ref={hScrollRef} className="venues-hscroll" aria-label="Venues horizontal scroll">
-    {items.map((v) => (
-      <div key={v.id} className="venues-snap-card">
+    {items.map((v, idx) => (
+      <div key={v.id} className="venues-snap-card" ref={idx === 3 ? prefetchTargetRef : null}>
         <Card className="venue-card h-100 border-0">
           <div className="venue-image-wrap">
             <img src={v.image ?? defaultImage} alt={v.name} className="venue-image" />

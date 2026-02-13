@@ -211,3 +211,13 @@
   color: #fff;
 }
 .venues-pagination .page-item.disabled .page-link { opacity: 0.35; }
+
+.dark-input.edit-outline {
+  border: 3px solid rgba(255, 255, 255, 0.28) !important;
+}
+
+.dark-input.edit-outline:focus {
+  border-color: rgba(255, 255, 255, 0.55) !important;
+  box-shadow: 0 0 0 0.18rem rgba(255, 255, 255, 0.12) !important;
+}
+

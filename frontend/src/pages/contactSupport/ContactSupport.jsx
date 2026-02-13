@@ -4,7 +4,7 @@ import "./ContactSupport.css";
 
 export default function ContactSupport() {
   const [form, setForm] = useState({
-    title: "",
+    subject: "",
     type: "Bug",
     priority: "Medium",
     message: "",
@@ -22,13 +22,13 @@ export default function ContactSupport() {
     setError("");
     setSuccess("");
 
-    if (!form.title || !form.message) {
+    if (!form.subject || !form.message) {
       return setError("Please fill all required fields.");
     }
 
-    const payload = { title: form.title, type: form.type, priority: form.priority, message: form.message }
+    const payload = { subject: form.subject, type: form.type, priority: form.priority, message: form.message }
     try {
-      const res = await fetch(`/api/support`, {
+      const res = await fetch(`/api/contact`, {
         method: "POST",
         headers: { Accept: "application/json" },
         body: JSON.stringify(payload),
@@ -39,7 +39,7 @@ export default function ContactSupport() {
     } catch (error) {
       setError(error.message);
     }
-    setForm({ title: "", type: "Bug", priority: "Medium", message: "" });
+    setForm({ subject: "", type: "Bug", priority: "Medium", message: "" });
   };
 
   return (
@@ -61,8 +61,8 @@ export default function ContactSupport() {
                   <Form.Group className="mb-3">
                     <Form.Label className="form-label-dark">Subject</Form.Label>
                     <Form.Control
-                      name="title"
-                      value={form.title}
+                      name="subject"
+                      value={form.subject}
                       onChange={onChange}
                       placeholder="Short description of your issue"
                       className="dark-input"

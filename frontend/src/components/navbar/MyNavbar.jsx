@@ -8,6 +8,10 @@ import { useNavigate } from "react-router-dom";
 function MyNavbar() {
   const navigate = useNavigate();
 
+  const handleProfile = () => {
+    navigate("/profile");
+  }
+
   const handleLogout = () => {
     localStorage.removeItem("access_token");
     navigate("/login");
@@ -38,6 +42,9 @@ function MyNavbar() {
           {/* Right side (desktop): auth links */}
           {localStorage.getItem("access_token") && (
             <Nav className="ms-auto nav-auth">
+              <Nav.Link onClick={handleProfile} className="nav-auth-link">
+                Profile
+              </Nav.Link>
               <Nav.Link onClick={handleLogout} className="nav-auth-link">
                 Logout
               </Nav.Link>

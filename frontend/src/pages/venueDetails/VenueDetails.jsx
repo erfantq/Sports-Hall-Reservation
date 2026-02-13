@@ -11,15 +11,16 @@ const MOCK_VENUE = {
   sport: "Football",
   rating: 4.7,
   pricePerHour: 450,
-  images: [
-    "https://images.unsplash.com/photo-1521412644187-c49fa049e84d?auto=format&fit=crop&w=1400&q=60",
-    "https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&w=1400&q=60",
-  ],
+  image: "https://images.unsplash.com/photo-1521412644187-c49fa049e84d?auto=format&fit=crop&w=1400&q=60",
   tags: ["Indoor", "Parking", "Showers", "Locker"],
   address: "Tehran, District 2, Example St. 12",
   description:
     "A modern indoor football arena with professional lighting, high-quality turf, lockers, showers and a comfortable lounge area.",
-  rules: ["No outside shoes", "Arrive 10 minutes early", "Respect other players"],
+  slots: {
+    "2025-12-31": ["10:00", "11:00", "13:00", "16:00", "18:00", "20:00"],
+    "2026-01-01": ["09:00", "12:00", "14:00", "17:00", "19:00"],
+    "2026-01-02": ["08:00", "10:00", "12:00", "15:00", "21:00"],
+  }
 };
 
 // Mock availability: each date has time slots
@@ -32,22 +33,47 @@ const MOCK_SLOTS = {
 export default function VenueDetails() {
   const { id } = useParams(); // later use this to fetch from backend
 
+  const defaulImage = "https://images.unsplash.com/photo-1521412644187-c49fa049e84d?auto=format&fit=crop&w=1400&q=60";
+
   const [selectedDate, setSelectedDate] = useState(Object.keys(MOCK_SLOTS)[0]);
   const [selectedTime, setSelectedTime] = useState("");
   const [hours, setHours] = useState(1);
+  const [totalPrice, setTotalPrice] = useState(0);
 
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   
   const [venueLoading, setVenueLoading] = useState(false);
-  const [venue, setVenue] = useState(null);
+  const [venue, setVenue] = useState({
+      id: "",
+      name: "",
+      city: "",
+      sport: "",
+      rating: 0,
+      pricePerHour: 0,
+      image: defaulImage,
+      tags: [],
+      address: "",
+      description: "",
+      slots: MOCK_SLOTS,
+    });
+
+  const normalizeVenue = (payloadData) => {
+    return {
+      id: payloadData.id,
+      name: payloadData.name,
+      city: payloadData.city,
+      sport: payloadData.sport,
+      rating: payloadData.rating,
+      pricePerHour: payloadData.pricePerHour,
+      image: payloadData?.image ?? defaulImage,
+      tags: payloadData.tags,
+      address: payloadData.address,
+      description: payloadData.description,
+      slots: payloadData.slots,
+    } 
+  }
   
-  // const venue = MOCK_VENUE; // TODO: fetch by id
-
-  const slots = useMemo(() => MOCK_SLOTS[selectedDate] || [], [selectedDate]);
-
-  const totalPrice = useMemo(() => venue.pricePerHour * Number(hours || 1), [venue.pricePerHour, hours]);
-
   const onBook = async () => {
     setError("");
     setMessage("");
@@ -89,11 +115,15 @@ export default function VenueDetails() {
       });
       const payload = await res.json();
       if (!payload?.status) throw new Error(payload?.message || "Failed to load venue.");
-      const normalized = normalizeVenue(payload);
+      const normalized = normalizeVenue(payload.data);
       setVenue(normalized);
-    } catch (error) {
+      const firstDate = Object.keys(normalized.slots || {})[0] || "";
+      setSelectedDate(firstDate);
+      setSelectedTime("");
+      setTotalPrice(normalized.pricePerHour);
+    } catch (err) {
       if (err.name === "AbortError") return;
-      setError(error.message);
+      setError(err.message);
     } finally {
       setVenueLoading(false);
     }
@@ -107,7 +137,7 @@ export default function VenueDetails() {
           <Col lg={7}>
             <Card className="glass-card overflow-hidden">
               <div className="venue-hero-img">
-                <img src={venue.images[0]} alt={venue.name} />
+                <img src={venue?.image ?? defaulImage} alt={venue?.name} />
               </div>
 
               <Card.Body>
@@ -146,14 +176,7 @@ export default function VenueDetails() {
                   <p className="muted mb-0">{venue.address}</p>
                 </div>
 
-                <div className="vd-block mt-4">
-                  <h3 className="section-title">Rules</h3>
-                  <ul className="vd-rules">
-                    {venue.rules.map((r) => (
-                      <li key={r} className="muted">{r}</li>
-                    ))}
-                  </ul>
-                </div>
+                
               </Card.Body>
             </Card>
           </Col>
@@ -175,14 +198,14 @@ export default function VenueDetails() {
                       setSelectedTime("");
                     }}
                   >
-                    {Object.keys(MOCK_SLOTS).map((d) => (
+                    {Object.keys(venue.slots[selectedDate]).map((d) => (
                       <option key={d} value={d}>{d}</option>
                     ))}
                   </Form.Select>
                 </Form.Group>
 
                 <div className="slots-grid">
-                  {slots.map((t) => (
+                  {venue.slots[selectedDate].map((t) => (
                     <button
                       key={t}
                       type="button"
@@ -193,7 +216,7 @@ export default function VenueDetails() {
                     </button>
                   ))}
 
-                  {slots.length === 0 && (
+                  {venue.slots.length === 0 && (
                     <div className="muted">No available slots for this date.</div>
                   )}
                 </div>
