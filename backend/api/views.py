@@ -5,21 +5,23 @@ from rest_framework.views import APIView
 from django.db.models import Count
 from .models import Hall, Booking, User, ContactMessage, PasswordResetCode
 from rest_framework.response import Response
-from .serializers import HallSerializer, BookingReadSerializer, BookingCreateSerializer, RegisterSerializer, UserSerializer, ContactMessageSerializer, ForgotPasswordSerializer, VerifyResetCodeSerializer
+from .serializers import HallSerializer, HallDetailSerializer, BookingReadSerializer, BookingCreateSerializer, RegisterSerializer, UserSerializer, ContactMessageSerializer, ForgotPasswordSerializer, VerifyResetCodeSerializer
 from .permissions import IsHallAdmin
 from .utils import api_response
 from django.utils import timezone
+from .pagination import StandardPagination
 
 class HallListView(generics.ListAPIView):
     serializer_class = HallSerializer    
+    pagination_class = StandardPagination
     filter_backends = [filters.SearchFilter]
     search_fields = ['name', 'location', 'amenities', 'city', 'sport']
 
 
     def get_queryset(self):
 
-        queryset = Hall.objects.all()
-        
+        queryset = Hall.objects.all().order_by('id') 
+
         sport_param = self.request.query_params.get('sport', None)
         
         if sport_param:
@@ -29,8 +31,10 @@ class HallListView(generics.ListAPIView):
 
 class HallDetailView(generics.RetrieveAPIView):
     queryset = Hall.objects.all()
-    serializer_class = HallSerializer
+    serializer_class = HallDetailSerializer
     lookup_field = 'id'
+    permission_classes = [permissions.IsAuthenticated] 
+
 
 
 class BookingCreateView(generics.CreateAPIView):
