@@ -42,15 +42,14 @@ function normalizeResponse(payload) {
     };
   }
 
-  const d = payload?.data;
-  const items = d
+  const items = payload.data.results;
 
   return {
     ok: true,
     message: payload?.message || "",
     items: items,
-    totalPages: Number(payload?.total_pages || 1),
-    page: Number(payload?.page || 1),
+    totalPages: Math.ceil(Number(payload?.data?.total_items / payload?.data?.page_size)),
+    page: Number(payload?.data?.page || 1),
   };
 }
 
@@ -142,6 +141,7 @@ export default function VenuesSection() {
           for (const it of normalized.items) {
             if (!seen.has(it.id)) merged.push(it);
           }
+          console.log(items)
           return merged;
         });
 

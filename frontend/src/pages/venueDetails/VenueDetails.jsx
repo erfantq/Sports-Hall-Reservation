@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Container, Row, Col, Card, Badge, Button, Form, Alert } from "react-bootstrap";
-import { useParams } from "react-router-dom";
+import { Navigate, useParams, useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import "./VenueDetails.css";
 
@@ -81,14 +81,17 @@ export default function VenueDetails() {
     if (!selectedDate) return setError("Please choose a date.");
     if (!selectedTime) return setError("Please choose a time slot.");
 
-    // TODO: call backend booking endpoint
     // payload example:
-    payload = { venue_id: venue.id, date: selectedDate, time: selectedTime, hours }
+    const body = { hall: venue.id, date: selectedDate, start_time: selectedTime, end_time: addHoursToTime(selectedTime, hours) }
     try {
-      const res = await fetch(`/api/venues/${id}/book`, {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/bookings/create/`, {
         method: "POST",
-        headers: { Accept: "application/json" },
-        body: JSON.stringify(payload),
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+        body: JSON.stringify(body),
       });
       const payload = await res.json();
       if (!payload?.status) throw new Error(payload?.message || "Failed to book venue.");
@@ -108,26 +111,47 @@ export default function VenueDetails() {
 
   const fetchVenue = async (signal) => {
     try {
-      const res = await fetch(`/api/venues/${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/halls/${id}`, {
         method: "GET",
-        headers: { Accept: "application/json" },
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
         signal: signal,
       });
       const payload = await res.json();
       if (!payload?.status) throw new Error(payload?.message || "Failed to load venue.");
       const normalized = normalizeVenue(payload.data);
       setVenue(normalized);
-      const firstDate = Object.keys(normalized.slots || {})[0] || "";
+      // todo get the name of the keys instead of indexes
+      console.log(Object.keys(normalized.slots));
+      const firstDate = Object.keys(normalized.slots)[0];
+      console.log(firstDate);
       setSelectedDate(firstDate);
       setSelectedTime("");
       setTotalPrice(normalized.pricePerHour);
     } catch (err) {
-      if (err.name === "AbortError") return;
       setError(err.message);
+      if (err.name === "AbortError") return;
+      Navigate('/')
     } finally {
       setVenueLoading(false);
     }
   };
+
+  function addHoursToTime(timeStr, hoursToAdd) {
+    const [h, m] = timeStr.split(":").map(Number);
+
+    const date = new Date();
+    date.setHours(h, m, 0, 0);
+    date.setHours(date.getHours() + hoursToAdd);
+
+    const hh = String(date.getHours()).padStart(2, "0");
+    const mm = String(date.getMinutes()).padStart(2, "0");
+
+    return `${hh}:${mm}`;
+  }
+
 
   return (
     <div className="venue-details-page">
@@ -198,7 +222,7 @@ export default function VenueDetails() {
                       setSelectedTime("");
                     }}
                   >
-                    {Object.keys(venue.slots[selectedDate]).map((d) => (
+                    {Object.keys(venue.slots).map((d) => (
                       <option key={d} value={d}>{d}</option>
                     ))}
                   </Form.Select>
