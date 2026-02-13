@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import User, Hall, Booking, User, ContactMessage
 from django.db.models import Q
-from datetime import datetime, date
+from datetime import datetime, timedelta, time, date
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -9,10 +9,18 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'email', 'role', 'phone_number']
         read_only_fields = ['id']
 
-        def validate_role(self, value):
-                if value == 'sys_admin' or value == 'venue-manager':
-                    raise serializers.ValidationError("شما نمی‌توانید نقش خود را به مدیر سیستم و مدیر سالن تغییر دهید.")
-                return value
+    def validate_role(self, value):
+
+        target_role = value
+
+        
+        user = self.context['request'].user
+
+
+        if target_role != 'user' and target_role != user.role:
+            raise serializers.ValidationError("شما فقط می‌توانید نقش خود را به 'user' تغییر دهید.")
+
+        return target_role
 
 
 
@@ -29,6 +37,57 @@ class HallSerializer(serializers.ModelSerializer):
         if obj.amenities:
             return [tag.strip() for tag in obj.amenities.replace('،', ',').split(',') if tag.strip()]
         return []
+    
+from rest_framework import serializers
+from .models import Hall, Booking
+from datetime import datetime, timedelta, time, date
+
+class HallDetailSerializer(serializers.ModelSerializer):
+    pricePerHour = serializers.IntegerField(source='price_per_hour')
+    address = serializers.CharField(source='location') 
+    tags = serializers.SerializerMethodField()
+    slots = serializers.SerializerMethodField() 
+
+    class Meta:
+        model = Hall
+        fields = [
+            'id', 'name', 'city', 'sport', 'rating', 'pricePerHour', 
+            'image', 'tags', 'address', 'description', 'slots'
+        ]
+
+    def get_tags(self, obj):
+        if obj.amenities:
+            return [tag.strip() for tag in obj.amenities.replace('،', ',').split(',') if tag.strip()]
+        return []
+
+    def get_slots(self, obj):
+
+        slots_data = {}
+        today = date.today()
+        
+        for i in range(7):
+            current_date = today + timedelta(days=i)
+            date_str = current_date.strftime('%Y-%m-%d')
+            available_times = []
+
+            for hour in range(8, 24):
+                start_time = time(hour, 0)
+                end_time = time(hour + 1, 0) if hour < 23 else time.max
+
+                is_booked = Booking.objects.filter(
+                    hall=obj,
+                    date=current_date,
+                    status__in=['pending', 'confirmed'],
+                    start_time__lt=end_time,  
+                    end_time__gt=start_time   
+                ).exists()
+
+                if not is_booked:
+                    available_times.append(start_time.strftime('%H:%M'))
+
+            slots_data[date_str] = available_times
+
+        return slots_data
 
 class BookingCreateSerializer(serializers.ModelSerializer):
 

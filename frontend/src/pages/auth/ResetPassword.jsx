@@ -35,7 +35,7 @@ export default function ResetPassword() {
       setLoading(true);
 
       // ✅ این endpoint رو با بک‌اند هماهنگ کنید
-      const res = await fetch(`${API_BASE}/api/auth/reset-password/`, {
+      const res = await fetch(`${API_BASE}/api/verify-code/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

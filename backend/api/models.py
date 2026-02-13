@@ -31,7 +31,12 @@ class Hall(models.Model):
     location = models.CharField(max_length=255, verbose_name="آدرس دقیق")
     capacity = models.PositiveIntegerField(verbose_name="ظرفیت نفرات")
     price_per_hour = models.PositiveIntegerField(default=100000, verbose_name="قیمت هر ساعت (تومان)")
-    
+    description = models.TextField(
+        verbose_name="توضیحات", 
+        default="یک سالن ورزشی مجهز با امکانات کامل.",
+        blank=True
+    )
+
     rating = models.FloatField(default=5.0, verbose_name="امتیاز")
 
     amenities = models.TextField(verbose_name="امکانات", help_text="امکانات را با کاما (,) جدا کنید. مثال: دوش, بوفه, پارکینگ")
