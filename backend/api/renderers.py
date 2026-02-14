@@ -8,7 +8,7 @@ class UniversalRenderer(JSONRenderer):
         
         message = ""
         if status_bool:
-            message = "عملیات با موفقیت انجام شد"
+            message = data.get('message', "عملیات با موفقیت انجام شد") if isinstance(data, dict) else "عملیات با موفقیت انجام شد"
         else:
             message = "خطایی رخ داده است"
             if isinstance(data, dict):
@@ -19,5 +19,12 @@ class UniversalRenderer(JSONRenderer):
             "message": message,
             "data": data
         }
+
+        if isinstance(data, dict) and 'results' in data and 'page' in data:
+            standardized_response['data'] = data['results']
+            standardized_response['page'] = data['page']
+            standardized_response['total_items'] = data['total_items']
+            if 'page_size' in data:
+                standardized_response['page_size'] = data['page_size']
 
         return super().render(standardized_response, accepted_media_type, renderer_context)

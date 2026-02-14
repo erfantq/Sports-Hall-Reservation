@@ -3,12 +3,21 @@ from .models import User, Hall, Booking, User, ContactMessage
 from django.db.models import Q
 from datetime import datetime, timedelta, time, date
 from django.contrib.auth import get_user_model
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 User = get_user_model()
 
-class UserManagementSerializer(serializers.ModelSerializer):
-    created_at = serializers.DateTimeField(format="%Y-%m-%d", read_only=True)
 
+class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        
+        data['role'] = self.user.role
+        
+        return data
+class UserManagementSerializer(serializers.ModelSerializer):
+    created_at = serializers.DateTimeField(source='date_joined', format="%Y-%m-%d", read_only=True)
+   
     class Meta:
         model = User
         fields = ['id', 'username', 'email', 'role', 'is_active', 'created_at']
@@ -59,12 +68,12 @@ class UserSerializer(serializers.ModelSerializer):
 
 class HallSerializer(serializers.ModelSerializer):
     pricePerHour = serializers.IntegerField(source='price_per_hour')
-
+    address = serializers.CharField(source='location')
     tags = serializers.SerializerMethodField()
 
     class Meta:
         model = Hall
-        fields = ['id', 'name', 'city', 'pricePerHour', 'rating', 'image', 'sport', 'tags']
+        fields = ['id', 'name', 'city', 'pricePerHour', 'rating', 'image', 'sport', 'tags', 'capacity', 'address']
 
     def get_tags(self, obj):
         if obj.amenities:
@@ -83,7 +92,7 @@ class HallDetailSerializer(serializers.ModelSerializer):
         model = Hall
         fields = [
             'id', 'name', 'city', 'sport', 'rating', 'pricePerHour', 
-            'image', 'tags', 'address', 'description', 'slots'
+            'image', 'tags', 'address', 'capacity', 'description', 'slots'
         ]
 
     def get_tags(self, obj):
@@ -165,13 +174,14 @@ class BookingCreateSerializer(serializers.ModelSerializer):
 class BookingReadSerializer(serializers.ModelSerializer):
     hallName = serializers.ReadOnlyField(source='hall.name')
     sport = serializers.ReadOnlyField(source='hall.sport')
+    userName = serializers.ReadOnlyField(source='user.username')
     time = serializers.TimeField(source='start_time')
     durationHours = serializers.SerializerMethodField()
     price = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
-        fields = ['id', 'hallName', 'sport', 'date', 'time', 'durationHours', 'price', 'status']
+        fields = ['id', 'hallName', 'userName', 'sport', 'date', 'time', 'durationHours', 'price', 'status', 'created_at']
 
     def get_durationHours(self, obj):
         dummy_date = date.min
@@ -239,3 +249,37 @@ class VerifyResetCodeSerializer(serializers.Serializer):
     email = serializers.EmailField()
     code = serializers.CharField(max_length=6)
     new_password = serializers.CharField(min_length=8, write_only=True)
+
+
+
+class HallManagementSerializer(serializers.ModelSerializer):
+    pricePerHour = serializers.IntegerField(source='price_per_hour')
+    address = serializers.CharField(source='location')
+    
+    class Meta:
+        model = Hall
+        fields = ['id', 'name', 'city', 'sport', 'pricePerHour', 'rating', 'image', 'capacity', 'address']
+
+
+class HallFacilitiesSerializer(serializers.ModelSerializer):
+    facilities = serializers.ListField(
+        child=serializers.CharField(), 
+        write_only=True
+    )
+    tags = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Hall
+        fields = ['id', 'name', 'facilities', 'tags']
+        read_only_fields = ['name', 'id']
+
+    def get_tags(self, obj):
+        if obj.amenities:
+            return [tag.strip() for tag in obj.amenities.replace('،', ',').split(',') if tag.strip()]
+        return []
+
+    def update(self, instance, validated_data):
+        facilities_list = validated_data.get('facilities', [])
+        instance.amenities = ",".join(facilities_list)
+        instance.save()
+        return instance

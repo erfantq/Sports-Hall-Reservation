@@ -29,8 +29,8 @@ class Hall(models.Model):
     name = models.CharField(max_length=100, verbose_name="نام سالن")
     city = models.CharField(max_length=100, default="مشهد", verbose_name="شهر")
     sport = models.CharField(max_length=100, default="فوتبال", verbose_name="ورزش")
-    location = models.CharField(max_length=255, verbose_name="آدرس دقیق")
-    capacity = models.PositiveIntegerField(verbose_name="ظرفیت نفرات")
+    location = models.CharField(max_length=255, verbose_name="آدرس دقیق", default="آدرس ثبت نشده")
+    capacity = models.PositiveIntegerField(verbose_name="ظرفیت نفرات", default=10)
     price_per_hour = models.PositiveIntegerField(default=100000, verbose_name="قیمت هر ساعت (تومان)")
     description = models.TextField(
         verbose_name="توضیحات", 
