@@ -8,6 +8,7 @@ class User(AbstractUser):
     ROLE_CHOICES = (
         ('user', 'کاربر عادی'),
         ('venue-manager', 'مدیر سالن'),
+        ('sys-admin', 'مدیر سیستم'),
     )
     
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='user', verbose_name="نقش کاربر")
@@ -28,8 +29,8 @@ class Hall(models.Model):
     name = models.CharField(max_length=100, verbose_name="نام سالن")
     city = models.CharField(max_length=100, default="مشهد", verbose_name="شهر")
     sport = models.CharField(max_length=100, default="فوتبال", verbose_name="ورزش")
-    location = models.CharField(max_length=255, verbose_name="آدرس دقیق")
-    capacity = models.PositiveIntegerField(verbose_name="ظرفیت نفرات")
+    location = models.CharField(max_length=255, verbose_name="آدرس دقیق", default="آدرس ثبت نشده")
+    capacity = models.PositiveIntegerField(verbose_name="ظرفیت نفرات", default=10)
     price_per_hour = models.PositiveIntegerField(default=100000, verbose_name="قیمت هر ساعت (تومان)")
     description = models.TextField(
         verbose_name="توضیحات", 
@@ -76,9 +77,28 @@ class Booking(models.Model):
         return f"{self.user.username} - {self.hall.name} ({self.date})"
     
 class ContactMessage(models.Model):
+
+    TYPE_CHOICES = (
+        ('bug', 'خطا'),
+        ('payment', 'پرداخت'),
+        ('venue', 'سالن ها'),
+        ('account', 'حساب کاربری'),
+        ('other', 'سایر'),
+    )
+    
+    PRIORITY_CHOICES = (
+        ('low', 'کم'),
+        ('medium', 'متوسط'),
+        ('high', 'فوری'),
+    )
+
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name="فرستنده")
     subject = models.CharField(max_length=200, verbose_name="موضوع")
     message = models.TextField(verbose_name="متن پیام")
+    type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='Bug', verbose_name="نوع پیام")
+
+    priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default='medium', verbose_name="اولویت")
+
     created_at = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False, verbose_name="خوانده شده؟")
 
