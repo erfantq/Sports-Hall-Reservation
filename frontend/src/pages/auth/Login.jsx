@@ -51,6 +51,7 @@ export default function  Login() {
 
       if (payload.data?.access) {
         localStorage.setItem("access_token", payload.data.access);
+        localStorage.setItem("role", payload.data.role);
       }
 
       // if (payload.data?.refresh) {

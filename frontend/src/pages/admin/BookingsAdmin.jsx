@@ -63,14 +63,13 @@ export default function BookingsAdmin() {
     abortRef.current = controller;
 
     try {
-      const payload = await fetchBookingsMock({
+      const payload = await fetchBookings({
         page,
         page_size: pageSize,
         search,
         status,
         from,
         to,
-        signal: controller.signal,
       });
 
       if (!payload?.status) throw new Error(payload?.message || "Request failed.");
@@ -95,6 +94,18 @@ export default function BookingsAdmin() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, search, status, from, to]);
 
+  const fetchBookings = async (params) => {
+    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/bookings/`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+      },
+      params,
+    });
+    return await res.json();
+  };
+
   const openConfirm = (b) => {
     setConfirmTarget(b);
     setShowConfirm(true);
@@ -106,7 +117,16 @@ export default function BookingsAdmin() {
     setError("");
 
     try {
-      const res = await confirmBookingMock(confirmTarget.id);
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/bookings/confirm/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: confirmTarget.id,
+          status: "confirmed",
+        }),
+      });
       if (!res?.status) throw new Error(res?.message || "Confirm failed.");
 
       setShowConfirm(false);
@@ -130,7 +150,16 @@ export default function BookingsAdmin() {
     setError("");
 
     try {
-      const res = await cancelBookingMock(cancelTarget.id, reason);
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/bookings/confirm/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: cancelTarget.id,
+          status: "canceled",
+        }),
+      });
       if (!res?.status) throw new Error(res?.message || "Cancel failed.");
 
       setShowCancel(false);
@@ -307,11 +336,7 @@ export default function BookingsAdmin() {
                           </Button>
                         </div>
 
-                        {b.status === "canceled" && b.cancel_reason && (
-                          <div className="muted small mt-2 cancel-reason">
-                            Reason: {b.cancel_reason}
-                          </div>
-                        )}
+                     
                       </td>
                     </tr>
                   ))

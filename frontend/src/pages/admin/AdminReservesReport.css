@@ -1,0 +1,33 @@
+.admin-report-page {
+  padding: 60px 0;
+}
+
+.report-result {
+  display: flex;
+  justify-content: center;
+}
+
+.report-box {
+  padding: 40px 60px;
+  border-radius: 18px;
+
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.12);
+
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+
+  text-align: center;
+}
+
+.report-number {
+  font-size: 48px;
+  font-weight: 700;
+  color: #fff;
+  display: block;
+}
+
+.report-label {
+  color: rgba(255,255,255,0.7);
+  font-size: 14px;
+}

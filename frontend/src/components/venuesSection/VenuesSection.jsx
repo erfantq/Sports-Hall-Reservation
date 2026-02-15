@@ -15,7 +15,7 @@ import { Link } from "react-router-dom";
 
 
 const API_URL =
-  import.meta.env.VITE_API_BASE_URL + "/api/halls";
+  import.meta.env.VITE_API_BASE_URL + "/api/halls/";
 
 // function normalizeResponse(payload) {
 //   const ok = payload?.status === true;
@@ -73,7 +73,8 @@ export default function VenuesSection() {
   const [sport, setSport] = useState("All");
 
   const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loadingInitial, setLoadingInitial] = useState(false); // first page / refetch
+  const [loadingMore, setLoadingMore] = useState(false);       // pagination
   const [error, setError] = useState("");
 
   const abortRef = useRef(null);
@@ -85,21 +86,34 @@ export default function VenuesSection() {
   const [totalPages, setTotalPages] = useState(1);
   const pageSize = 6;
 
+  const isPrefetchingRef = useRef(false);
+  const savedScrollLeftRef = useRef(0);
+
+  const PREFETCH_INDEX_FROM_END = 2;
   useEffect(() => {
     setPage(1);
+    savedScrollLeftRef.current = 0;
   }, [query, sport]);
 
 
   useEffect(() => {
     const run = async () => {
       setError("");
-      setLoading(true);
+      const isFirstPage = page === 1;
+      if (isFirstPage) {
+        setLoadingInitial(true);
+      } else {
+        setLoadingMore(true);
+      }
 
       if (abortRef.current) abortRef.current.abort();
       const controller = new AbortController();
       abortRef.current = controller;
 
       try {
+        // Remember where the user currently is so we can restore only if needed (not used now but kept for future).
+        savedScrollLeftRef.current = hScrollRef.current?.scrollLeft ?? 0;
+
         const params = new URLSearchParams();
         params.set("page", String(page));
         params.set("page_size", String(pageSize));
@@ -141,7 +155,6 @@ export default function VenuesSection() {
           for (const it of normalized.items) {
             if (!seen.has(it.id)) merged.push(it);
           }
-          console.log(items)
           return merged;
         });
 
@@ -150,7 +163,10 @@ export default function VenuesSection() {
         setError(e?.message || "Failed to load venues.");
         setItems([]);
       } finally {
-        setLoading(false);
+        setLoadingInitial(false);
+        setLoadingMore(false);
+        isPrefetchingRef.current = false;
+
       }
     };
 
@@ -169,7 +185,8 @@ export default function VenuesSection() {
   }, [items]);
 
   useEffect(() => {
-    if (loading) return;
+    const isFetching = loadingInitial || loadingMore;
+    if (isFetching) return;
     if (page >= totalPages) return;
 
     const el = prefetchTargetRef.current;
@@ -179,9 +196,16 @@ export default function VenuesSection() {
 
     const obs = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
-          setPage((p) => (p < totalPages ? p + 1 : p));
-        }
+        if (!entry.isIntersecting) return;
+
+        if (isPrefetchingRef.current) return;
+        if (loadingInitial || loadingMore) return;
+
+        isPrefetchingRef.current = true;
+
+        savedScrollLeftRef.current = hScrollRef.current?.scrollLeft ?? 0;
+
+        setPage((p) => (p < totalPages ? p + 1 : p));
       },
       {
         root: hScrollRef.current, // ✅ چون اسکرول افقی داخل همین div است
@@ -193,14 +217,14 @@ export default function VenuesSection() {
     observerRef.current = obs;
 
     return () => obs.disconnect();
-  }, [items, loading, page, totalPages]);
+  }, [items, loadingInitial, loadingMore, page, totalPages]);
 
 
   useEffect(() => {
-    if (!loading) {
+    if (!loadingInitial && !loadingMore) {
       searchRef.current?.focus();
     }
-  }, [loading]);
+  }, [loadingInitial, loadingMore]);
 
   return (
     <div className="venues-section">
@@ -219,14 +243,14 @@ export default function VenuesSection() {
               placeholder="Search by name or city..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              disabled={loading}
+              disabled={loadingInitial && items.length === 0}
             />
 
             <Form.Select
               className="venues-select"
               value={sport}
               onChange={(e) => setSport(e.target.value)}
-              disabled={loading}
+              disabled={loadingInitial && items.length === 0}
             >
               {["All", "Football", "Basketball", "Volleyball"].map((s) => (
                 <option key={s} value={s}>
@@ -243,83 +267,85 @@ export default function VenuesSection() {
           </Alert>
         )}
 
-        {loading ? (
-          <div className="d-flex justify-content-center py-5">
-            <Spinner animation="border" role="status" />
-          </div>
-        ) : (
-          <div className="venues-carousel">
-  <button
-  type="button"
-  className="venues-arrow venues-arrow-left"
-  onClick={() => scrollByCard(-1)}
-  aria-label="Scroll left"
->
-  <FiChevronLeft size={22} />
-</button>
+       <div className="venues-carousel-wrap">
+  <div className="venues-carousel">
+    <button
+      type="button"
+      className="venues-arrow venues-arrow-left"
+      onClick={() => scrollByCard(-1)}
+      aria-label="Scroll left"
+      disabled={loadingInitial && items.length === 0}
+    >
+      <FiChevronLeft size={22} />
+    </button>
 
-  <div ref={hScrollRef} className="venues-hscroll" aria-label="Venues horizontal scroll">
-    {items.map((v, idx) => (
-      <div key={v.id} className="venues-snap-card" ref={idx === 3 ? prefetchTargetRef : null}>
-        <Card className="venue-card h-100 border-0">
-          <div className="venue-image-wrap">
-            <img src={v.image ?? defaultImage} alt={v.name} className="venue-image" />
-          </div>
+    <div ref={hScrollRef} className="venues-hscroll" aria-label="Venues horizontal scroll">
+      {items.map((v, idx) => (
+        <div
+          key={v.id}
+          className="venues-snap-card"
+          ref={idx === Math.max(0, items.length - (PREFETCH_INDEX_FROM_END + 1)) ? prefetchTargetRef : null}
+        >
+          <Card className="venue-card h-100 border-0">
+            <div className="venue-image-wrap">
+              <img src={v.image ?? defaultImage} alt={v.name} className="venue-image" />
+            </div>
 
-          <Card.Body className="d-flex flex-column justify-content-between">
-            <div>
-              <div className="d-flex justify-content-between align-items-start">
-                <div>
-                  <Card.Title className="text-white mb-1">{v.name}</Card.Title>
-                  <div className="text-white-50 small">
-                    {v.city} • {v.sport}
+            <Card.Body className="d-flex flex-column justify-content-between">
+              <div>
+                <div className="d-flex justify-content-between align-items-start">
+                  <div>
+                    <Card.Title className="text-white mb-1">{v.name}</Card.Title>
+                    <div className="text-white-50 small">
+                      {v.city} • {v.sport}
+                    </div>
                   </div>
+                  <Badge bg="secondary">{v.rating}</Badge>
                 </div>
-                <Badge bg="secondary">{v.rating}</Badge>
+
+                <div className="d-flex flex-wrap gap-2 mt-3">
+                  {(v.tags || []).map((t) => (
+                    <Badge key={t} bg="dark" text="light" className="venue-tag">
+                      {t}
+                    </Badge>
+                  ))}
+                </div>
               </div>
 
-              <div className="d-flex flex-wrap gap-2 mt-3">
-                {(v.tags || []).map((t) => (
-                  <Badge key={t} bg="dark" text="light" className="venue-tag">
-                    {t}
-                  </Badge>
-                ))}
+              <div className="d-flex justify-content-between align-items-center mt-4">
+                <div className="text-white">
+                  <span className="fw-semibold">${v.pricePerHour}</span>
+                  <span className="text-white-50"> / hour</span>
+                </div>
+                <Button as={Link} to={`/venues/${v.id}`} className="btn-white-glass">
+                  Book now
+                </Button>
               </div>
+            </Card.Body>
+          </Card>
+        </div>
+      ))}
+    </div>
 
-            </div>
-
-            <div className="d-flex justify-content-between align-items-center mt-4">
-              <div className="text-white">
-                <span className="fw-semibold">${v.pricePerHour}</span>
-                <span className="text-white-50"> / hour</span>
-              </div>
-              <Button as={Link} to={`/venues/${v.id}`} className="btn-white-glass">
-                Book now
-              </Button>
-            </div>
-          </Card.Body>
-        </Card>
-      </div>
-    ))}
-
-    {items.length === 0 && !error && (
-      <div className="text-center text-white-50 py-5 w-100">
-        No venues found.
-      </div>
-    )}
+    <button
+      type="button"
+      className="venues-arrow venues-arrow-right"
+      onClick={() => scrollByCard(1)}
+      aria-label="Scroll right"
+      disabled={loadingInitial && items.length === 0}
+    >
+      <FiChevronRight size={22} />
+    </button>
   </div>
 
-  <button
-  type="button"
-  className="venues-arrow venues-arrow-right"
-  onClick={() => scrollByCard(1)}
-  aria-label="Scroll right"
->
-  <FiChevronRight size={22} />
-</button>
+  {/* ✅ فقط این spinner اضافه شد، بدون اینکه carousel حذف بشه */}
+  {(loadingInitial && items.length === 0) && (
+    <div className="venues-loading-overlay">
+      <Spinner animation="border" role="status" />
+    </div>
+  )}
 </div>
 
-        )}
       </Container>
     </div>
   );

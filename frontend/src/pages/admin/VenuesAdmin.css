@@ -76,17 +76,66 @@
 
 /* facilities count badge */
 .fac-count-badge {
-  border-radius: 12px;
-  padding: 8px 10px;
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(255,255,255,0.06);
-  font-weight: 800;
-  color: rgba(255,255,255,0.86);
+  background: rgba(255,255,255,0.10) !important;
+  color: #fff !important;
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-weight: 500;
 }
 
 /* animation */
 .admin-table.is-animating.next { animation: slideNext 180ms ease; }
 .admin-table.is-animating.prev { animation: slidePrev 180ms ease; }
+
+/* ===== Wrapper گلس ===== */
+.admin-glass-wrapper{
+  border-radius: 18px;
+  overflow: hidden;
+
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.10);
+
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+
+  box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+}
+
+/* ===== Table پایه ===== */
+.admin-glass-table{
+  color: rgba(255,255,255,0.92);
+  margin: 0;
+}
+
+/* Header */
+.admin-glass-table thead th{
+  background: rgba(255,255,255,0.06) !important;
+  color: rgba(255,255,255,0.85) !important;
+  font-weight: 600;
+  border-bottom: 1px solid rgba(255,255,255,0.12) !important;
+  padding: 16px 20px;
+}
+
+/* Row ها */
+.admin-glass-table tbody td{
+  padding: 18px 20px;
+  border-top: 1px solid rgba(255,255,255,0.08) !important;
+}
+
+/* Hover */
+.admin-glass-table tbody tr:hover td{
+  background: rgba(255,255,255,0.04);
+}
+
+/* حذف کامل سفید bootstrap */
+.admin-glass-table,
+.admin-glass-table tbody,
+.admin-glass-table td,
+.admin-glass-table th{
+  background-color: transparent !important;
+}
+
 
 @keyframes slideNext {
   from { transform: translateX(10px); opacity: 0.5; }

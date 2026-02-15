@@ -1,9 +1,11 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { FaUsers, FaChartBar, FaShieldAlt , FaBuilding , FaClipboardList } from "react-icons/fa";
+import { FaUsers, FaChartBar, FaShieldAlt , FaBuilding , FaClipboardList , FaCalendar , FaUser } from "react-icons/fa";
 import "./AdminSidebar.css";
 
 export default function AdminSidebar() {
+  const role = localStorage.getItem('role')
+
   return (
     <aside className="admin-sidebar">
       <div className="admin-brand">
@@ -11,21 +13,25 @@ export default function AdminSidebar() {
           <FaShieldAlt />
         </div>
         <div>
-          <div className="admin-brand-title">Sporta Admin</div>
+          <div className="admin-brand-title">Sporta {role}</div>
           <div className="admin-brand-sub">Management Panel</div>
         </div>
       </div>
 
       <nav className="admin-nav">
-        <NavLink end to="/admin" className={({ isActive }) => `admin-link ${isActive ? "active" : ""}`}>
-          <FaChartBar className="admin-link-ico" />
-          Dashboard
-        </NavLink>
+        {(role == 'sys-admin') && (
+          <NavLink end to="/admin" className={({ isActive }) => `admin-link ${isActive ? "active" : ""}`}>
+            <FaChartBar className="admin-link-ico" />
+            Dashboard
+          </NavLink>
+        )}
 
-        <NavLink to="/admin/users" className={({ isActive }) => `admin-link ${isActive ? "active" : ""}`}>
-          <FaUsers className="admin-link-ico" />
-          Users
-        </NavLink>
+        {(role == 'sys-admin') && (
+          <NavLink to="/admin/users" className={({ isActive }) => `admin-link ${isActive ? "active" : ""}`}>
+            <FaUsers className="admin-link-ico" />
+            Users
+          </NavLink>
+        )}
 
         <NavLink to="/admin/venues" className={({ isActive }) => `admin-link ${isActive ? "active" : ""}`}>
           <FaBuilding className="admin-link-ico" />
@@ -36,6 +42,18 @@ export default function AdminSidebar() {
           <FaClipboardList className="admin-link-ico" />
           Bookings
         </NavLink>
+
+        {/* <NavLink to="/admin/reserves-count" className={({ isActive }) => `admin-link ${isActive ? "active" : ""}`}>
+          <FaCalendar className="admin-link-ico" />
+          Reservations Count
+        </NavLink>
+
+        <NavLink to="/admin/active-users-count" className={({ isActive }) => `admin-link ${isActive ? "active" : ""}`}>
+          <FaUser className="admin-link-ico" />
+          Active Users Count
+        </NavLink> */}
+
+
       </nav>
 
       <div className="admin-sidebar-footer">

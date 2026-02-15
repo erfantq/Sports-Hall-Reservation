@@ -12,15 +12,22 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import UsersAdmin from "./pages/admin/UsersAdmin";
 import VenuesAdmin from "./pages/admin/VenuesAdmin";
 import BookingsAdmin from "./pages/admin/BookingsAdmin";
+import AdminReservesReport from "./pages/admin/AdminReservesReport";
+import AdminActiveUsersReport from "./pages/admin/AdminActiveUsersReport";
 // import ScheduleAdmin from "./pages/admin/ScheduleAdmin";
 // import ReportsAdmin from "./pages/admin/ReportsAdmin";
 
-// نمونه: نقش کاربر را از context/store بگیر
-const useAuth = () => ({ role: "admin" });
+const useAuth = () => ({ role: localStorage.getItem("role") });
 
 function AdminGuard({ children }) {
   const { role } = useAuth();
-  if (role !== "admin") return <Navigate to="/" replace />;
+  if (role !== "sys-admin") return <Navigate to="/" replace />;
+  return children;
+}
+
+function AdminAndVenueManagerGuard({ children }) {
+  const { role } = useAuth();
+  if(role !== "sys-admin" || role !== "venue-manager") return <Navigate to="/" replace />;
   return children;
 }
 
@@ -48,12 +55,24 @@ export default function App() {
       >
         <Route index element={<AdminDashboard />} />
         <Route path="users" element={<UsersAdmin />} />
-        <Route path="venues" element={<VenuesAdmin />} />
-        <Route path="bookings" element={<BookingsAdmin />} />
+
+        {/* <Route path="reserves-count" element={<AdminReservesReport />} /> */}
+        {/* <Route path="active-users-count" element={<AdminActiveUsersReport />} /> */}
         {/* <Route path="schedule" element={<ScheduleAdmin />} /> */}
         {/* <Route path="reports" element={<ReportsAdmin />} /> */}
       </Route>
 
+      <Route
+          path="/admin"
+          element={
+            <AdminAndVenueManagerGuard>
+              <AdminLayout />
+            </AdminAndVenueManagerGuard>
+          }
+        >
+          <Route path="venues" element={<VenuesAdmin />} />
+          <Route path="bookings" element={<BookingsAdmin />} />
+        </Route>
     </Routes>
   );
 }

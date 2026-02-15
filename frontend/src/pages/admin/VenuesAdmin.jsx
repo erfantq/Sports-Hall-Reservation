@@ -24,7 +24,7 @@ export default function VenuesAdmin() {
   const [query, setQuery] = useState("");
   const [city, setCity] = useState("All");
   const [sport, setSport] = useState("All");
-  const [active, setActive] = useState("All"); // All | true | false
+  // const [active, setActive] = useState("All"); // All | true | false
 
   const [page, setPage] = useState(1);
   const pageSize = 8;
@@ -69,12 +69,21 @@ export default function VenuesAdmin() {
   useEffect(() => {
     if (page !== 1) goToPage(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, city, sport, active]);
+  }, [query, city, sport]);
 
   const loadFacilities = async () => {
     try {
-      const res = await fetchFacilitiesMock();
-      if (res?.status) setAllFacilities(res.data.items || []);
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/halls/facilities/`, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+        signal: controller.signal,
+      });
+      const payload = await res.json();
+      if (payload?.status) setAllFacilities(payload.data || []);
     } catch {
       // ignore
     }
@@ -89,22 +98,41 @@ export default function VenuesAdmin() {
     abortRef.current = controller;
 
     try {
-      const payload = await fetchVenuesMock({
+      // const payload = await fetchVenuesMock({
+      //   page,
+      //   page_size: pageSize,
+      //   search: query,
+      //   city,
+      //   sport,
+      //   signal: controller.signal,
+      // });
+
+      const params = new URLSearchParams({
         page,
         page_size: pageSize,
         search: query,
         city,
         sport,
-        is_active: active,
-        signal: controller.signal,
       });
+
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/halls/`, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+        signal: controller.signal,
+        params,
+      });
+      const payload = await res.json();
 
       if (!payload?.status) throw new Error(payload?.message || "Request failed.");
 
-      setItems(payload.data.items || []);
-      setTotalPages(payload.data.total_pages || 1);
+      setItems(payload.data || []);
+      setTotalPages(payload.total_pages || 1);
 
-      if (page > (payload.data.total_pages || 1)) setPage(payload.data.total_pages || 1);
+      if (page > (payload.total_pages || 1)) setPage(payload.total_pages || 1);
     } catch (e) {
       if (e?.name === "AbortError") return;
       setError(e?.message || "Failed to load venues.");
@@ -123,7 +151,7 @@ export default function VenuesAdmin() {
     load();
     return () => abortRef.current?.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, query, city, sport, active]);
+  }, [page, query, city, sport]);
 
   const cities = useMemo(() => ["All", ...Array.from(new Set(items.map((v) => v.city).filter(Boolean)))], [items]);
   const sports = useMemo(() => ["All", ...Array.from(new Set(items.map((v) => v.sport).filter(Boolean)))], [items]);
@@ -146,11 +174,29 @@ export default function VenuesAdmin() {
 
     try {
       if (formMode === "create") {
-        const res = await createVenueMock({ ...data, facilities: [] });
-        if (!res?.status) throw new Error(res?.message || "Create failed.");
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/halls/create/`, {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+          },
+          body: JSON.stringify(data),
+        });
+        const payload = await res.json();
+        if (!payload?.status) throw new Error(payload?.message || "Create failed.");
       } else {
-        const res = await updateVenueMock(editingVenue.id, data);
-        if (!res?.status) throw new Error(res?.message || "Update failed.");
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/halls/update/${editingVenue.id}`, {
+          method: "PATCH",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+          },
+          body: JSON.stringify(data),
+        });
+        const payload = await res.json();
+        if (!payload?.status) throw new Error(payload?.message || "Update failed.");
       }
 
       setShowForm(false);
@@ -173,8 +219,17 @@ export default function VenuesAdmin() {
     setError("");
 
     try {
-      const res = await updateVenueFacilitiesMock(facVenue.id, facilities);
-      if (!res?.status) throw new Error(res?.message || "Update facilities failed.");
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/halls/update-facilities/${facVenue.id}`, {
+        method: "PATCH",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+        body: JSON.stringify({ facilities }),
+      });
+      const payload = await res.json();
+      if (!payload?.status) throw new Error(payload?.message || "Update facilities failed.");
 
       setShowFacilities(false);
       setFacVenue(null);
@@ -197,8 +252,16 @@ export default function VenuesAdmin() {
     setError("");
 
     try {
-      const res = await deleteVenueMock(deletingVenue.id);
-      if (!res?.status) throw new Error(res?.message || "Delete failed.");
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/halls/delete/${deletingVenue.id}`, {
+        method: "DELETE",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+      });
+      const payload = await res.json();
+      if (!payload?.status) throw new Error(payload?.message || "Delete failed.");
 
       setShowDelete(false);
       setDeletingVenue(null);
@@ -258,7 +321,7 @@ export default function VenuesAdmin() {
       <Card className="glass-card">
         <Card.Body>
           <Row className="g-3 align-items-end">
-            <Col lg={4}>
+            <Col md={5} >
               <Form.Label className="form-label-dark">Search</Form.Label>
               <Form.Control
                 className="dark-input"
@@ -269,7 +332,7 @@ export default function VenuesAdmin() {
               />
             </Col>
 
-            <Col md={4} lg={3}>
+            <Col md={4} >
               <Form.Label className="form-label-dark">City</Form.Label>
               <Form.Select className="dark-input" value={city} onChange={(e) => setCity(e.target.value)} disabled={loading || mutating}>
                 {cities.map((c) => (
@@ -280,7 +343,7 @@ export default function VenuesAdmin() {
               </Form.Select>
             </Col>
 
-            <Col md={4} lg={3}>
+            <Col md={3} >
               <Form.Label className="form-label-dark">Sport</Form.Label>
               <Form.Select className="dark-input" value={sport} onChange={(e) => setSport(e.target.value)} disabled={loading || mutating}>
                 {sports.map((s) => (
@@ -291,27 +354,19 @@ export default function VenuesAdmin() {
               </Form.Select>
             </Col>
 
-            <Col md={4} lg={2}>
-              <Form.Label className="form-label-dark">Status</Form.Label>
-              <Form.Select className="dark-input" value={active} onChange={(e) => setActive(e.target.value)} disabled={loading || mutating}>
-                <option value="All">All</option>
-                <option value="true">Active</option>
-                <option value="false">Inactive</option>
-              </Form.Select>
-            </Col>
+            
           </Row>
 
           {error && <Alert variant="danger" className="mt-3 mb-0">{error}</Alert>}
 
-          <div className="admin-table-wrap mt-3">
-            <Table responsive className={`admin-table ${isAnimating ? `is-animating ${direction}` : ""}`}>
+          <div className="admin-glass-wrapper mt-3">
+            <Table responsive className={`admin-glass-table ${isAnimating ? `is-animating ${direction}` : ""}`}>
               <thead>
                 <tr>
                   <th>Venue</th>
                   <th>City</th>
                   <th>Sport</th>
                   <th>Price</th>
-                  <th>Status</th>
                   <th>Facilities</th>
                   <th className="text-end">Actions</th>
                 </tr>
@@ -345,22 +400,15 @@ export default function VenuesAdmin() {
                           />
                           <div>
                             <div className="text-white fw-semibold">{v.name}</div>
-                            <div className="muted small">#{v.id}</div>
                           </div>
                         </div>
                       </td>
 
-                      <td className="muted">{v.city}</td>
-                      <td className="muted">{v.sport}</td>
+                      <td className="muted text-white">{v.city}</td>
+                      <td className="muted text-white">{v.sport}</td>
                       <td className="text-white">
                         <span className="fw-semibold">${v.price_per_hour}</span>
                         <span className="muted"> / hour</span>
-                      </td>
-
-                      <td>
-                        <Badge className={`status-badge ${v.is_active ? "ok" : "off"}`}>
-                          {v.is_active ? "Active" : "Inactive"}
-                        </Badge>
                       </td>
 
                       <td>

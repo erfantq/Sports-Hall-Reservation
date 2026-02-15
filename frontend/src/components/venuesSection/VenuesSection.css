@@ -23,21 +23,24 @@
 
 /* ✅ Horizontal scroll + snap */
 .venues-hscroll {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(280px, 360px);
-  gap: 16px;
+  display: flex;
+  flex-flow: row nowrap;
+  column-gap: 16px;
+  width: 100%;
+  flex: 1 1 auto;
 
   overflow-x: auto;
   overflow-y: hidden;
 
   padding-bottom: 8px;
 
-  scroll-snap-type: x mandatory;
+  scroll-snap-type: x proximity;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  overscroll-behavior-x: contain;
 
-  /* مخفی کردن scrollbar (اختیاری) */
+  /* hide scrollbar */
   scrollbar-width: none;      /* Firefox */
 }
 .venues-hscroll::-webkit-scrollbar {
@@ -45,8 +48,8 @@
 }
 
 .venues-snap-card {
+  flex: 0 0 clamp(280px, 32vw, 360px);
   scroll-snap-align: start;
-  scroll-snap-stop: always;
 }
 
 /* Wrapper برای فلش‌ها + اسکرول */
@@ -100,6 +103,17 @@
 .venues-arrow-left  { left: -10px; }
 .venues-arrow-right { right: -10px; }
 
+.venues-carousel-wrap { position: relative; }
+.venues-loading-overlay{
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  background: rgba(11,13,18,0.35);
+  backdrop-filter: blur(6px);
+  z-index: 5;
+  pointer-events: none;  
+}
+
+
 
 /* موبایل */
 @media (max-width: 576px) {
@@ -137,14 +151,16 @@
 /* Desktop: کمی بزرگ‌تر */
 @media (min-width: 992px) {
   .venues-hscroll {
-    grid-auto-columns: minmax(320px, 380px);
-    gap: 18px;
+    column-gap: 18px;
+  }
+  .venues-snap-card {
+    flex-basis: clamp(320px, 30vw, 380px);
   }
 }
 
 /* Mobile: کارت کمی باریک‌تر */
 @media (max-width: 576px) {
-  .venues-hscroll {
-    grid-auto-columns: 82vw;  /* حس swipe خوب */
+  .venues-snap-card {
+    flex-basis: 82vw;  /* حس swipe خوب */
   }
 }

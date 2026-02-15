@@ -30,16 +30,6 @@ export default function CancelBookingModal({
           Cancel booking #{booking?.id} for <span className="text-white fw-semibold">{booking?.venue?.name}</span>?
         </div>
 
-        <Form.Label className="form-label-dark">Reason (optional)</Form.Label>
-        <Form.Control
-          as="textarea"
-          rows={3}
-          className="dark-input"
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-          placeholder="e.g. Venue unavailable, maintenance..."
-          disabled={loading}
-        />
       </Modal.Body>
 
       <Modal.Footer className="bg-dark border-0">

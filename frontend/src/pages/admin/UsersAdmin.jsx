@@ -3,7 +3,6 @@ import { Card, Button, Form, Row, Col, Table, Badge, Spinner, Alert, Pagination 
 import { FaPlus, FaEdit, FaTrash } from "react-icons/fa";
 import "./UsersAdmin.css";
 
-import { fetchUsersMock, createUserMock, updateUserMock, deleteUserMock } from "../../api/admin/users.api";
 import UserFormModal from "../../components/admin/UserFormModal";
 import ConfirmModal from "../../components/admin/ConfirmModal";
 
@@ -32,6 +31,8 @@ export default function UsersAdmin() {
 
   const [showDelete, setShowDelete] = useState(false);
   const [deletingUser, setDeletingUser] = useState(null);
+
+  const [active, setActive] = useState("All");
 
   const abortRef = useRef(null);
 
@@ -63,12 +64,12 @@ export default function UsersAdmin() {
     abortRef.current = controller;
 
     try {
-      const payload = await fetchUsersMock({
+      const payload = await fetchUsers({
         page,
         page_size: pageSize,
         search: query,
         role,
-        signal: controller.signal,
+        active,
       });
 
       if (!payload?.status) throw new Error(payload?.message || "Request failed.");
@@ -99,6 +100,18 @@ export default function UsersAdmin() {
     return <Badge className="role-badge role-user">User</Badge>;
   };
 
+  const fetchUsers = async (params) => {
+    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/users/`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+      },
+      params,
+    });
+    return await res.json();
+  };
+
   const openCreate = () => {
     setFormMode("create");
     setEditingUser(null);
@@ -116,11 +129,29 @@ export default function UsersAdmin() {
     setError("");
     try {
       if (formMode === "create") {
-        const res = await createUserMock(data);
-        if (!res?.status) throw new Error(res?.message || "Create failed.");
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/users/create/`, {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+          },
+          body: JSON.stringify(data),
+        });
+        const payload = await res.json();
+        if (!payload?.status) throw new Error(payload?.message || "Create failed.");
       } else {
-        const res = await updateUserMock(editingUser.id, data);
-        if (!res?.status) throw new Error(res?.message || "Update failed.");
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/users/update/${editingUser.id}`, {
+          method: "PATCH",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+          },
+          body: JSON.stringify(data),
+        });
+        const payload = await res.json();
+        if (!payload?.status) throw new Error(payload?.message || "Update failed.");
       }
 
       setShowForm(false);
@@ -143,12 +174,19 @@ export default function UsersAdmin() {
     setError("");
 
     try {
-      const res = await deleteUserMock(deletingUser.id);
-      if (!res?.status) throw new Error(res?.message || "Delete failed.");
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/users/delete/${deletingUser.id}`, {
+        method: "DELETE",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+      });
+      const payload = await res.json();
+      if (!payload?.status) throw new Error(payload?.message || "Delete failed.");
       setShowDelete(false);
       setDeletingUser(null);
 
-      // اگر صفحه خالی شد برگرد
       if (items.length === 1 && page > 1) {
         setPage(page - 1);
       } else {
@@ -223,18 +261,18 @@ export default function UsersAdmin() {
       <Card className="glass-card">
         <Card.Body>
           <Row className="g-3 align-items-end">
-            <Col md={7}>
+            <Col md={5}>
               <Form.Label className="form-label-dark">Search</Form.Label>
               <Form.Control
                 className="dark-input"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search by name or email..."
+                placeholder="Search by username or email..."
                 disabled={loading || mutating}
               />
             </Col>
 
-            <Col md={5}>
+            <Col md={4}>
               <Form.Label className="form-label-dark">Role</Form.Label>
               <Form.Select
                 className="dark-input"
@@ -248,6 +286,15 @@ export default function UsersAdmin() {
                 <option value="admin">Admin</option>
               </Form.Select>
             </Col>
+
+            <Col md={3}>
+              <Form.Label className="form-label-dark">Status</Form.Label>
+              <Form.Select className="dark-input" value={active} onChange={(e) => setActive(e.target.value)} disabled={loading || mutating}>
+                <option value="All">All</option>
+                <option value="true">Active</option>
+                <option value="false">Inactive</option>
+              </Form.Select>
+            </Col>
           </Row>
 
           {error && <Alert variant="danger" className="mt-3 mb-0">{error}</Alert>}
@@ -256,7 +303,7 @@ export default function UsersAdmin() {
             <Table responsive className={`admin-table ${isAnimating ? `is-animating ${direction}` : ""}`}>
               <thead>
                 <tr>
-                  <th>Name</th>
+                  <th>Username</th>
                   <th>Email</th>
                   <th>Role</th>
                   <th>Status</th>
@@ -283,7 +330,7 @@ export default function UsersAdmin() {
                 ) : (
                   items.map((u) => (
                     <tr key={u.id}>
-                      <td className="text-white fw-semibold">{u.name}</td>
+                      <td className="text-white fw-semibold">{u.username}</td>
                       <td className="muted">{u.email}</td>
                       <td>{roleBadge(u.role)}</td>
                       <td>
@@ -337,7 +384,7 @@ export default function UsersAdmin() {
       <ConfirmModal
         show={showDelete}
         title="Delete user"
-        body={`Are you sure you want to delete "${deletingUser?.name}"?`}
+        body={`Are you sure you want to delete "${deletingUser?.username}"?`}
         confirmText="Delete"
         cancelText="Cancel"
         loading={mutating}
