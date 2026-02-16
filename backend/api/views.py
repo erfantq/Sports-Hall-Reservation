@@ -1,7 +1,7 @@
 import random
 from django.db.models import Q, Count
 from django.core.mail import send_mail
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from rest_framework import generics, filters, permissions, status
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -394,10 +394,37 @@ class HallUsageStatsView(generics.ListAPIView):
     filter_backends = [filters.SearchFilter]
     search_fields = ['city', 'sport']
 
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        start_date, end_date = self.get_date_range()
+        
+        days_count = (end_date - start_date).days + 1
+        context['total_slots'] = days_count * 16 
+        return context
+    
+
+
+    def get_date_range(self):
+        start_param = self.request.query_params.get('start_date')
+        end_param = self.request.query_params.get('end_date')
+
+        try:
+            if start_param and end_param:
+                start_date = datetime.strptime(start_param, '%Y-%m-%d').date()
+                end_date = datetime.strptime(end_param, '%Y-%m-%d').date()
+            else:
+                end_date = date.today()
+                start_date = end_date - timedelta(days=6)
+        except ValueError:
+            end_date = date.today()
+            start_date = end_date - timedelta(days=6)
+            
+        return start_date, end_date
+
     def get_queryset(self):
         user = self.request.user
-        today = date.today()
-        one_week_ago = today - timedelta(days=7)
+        start_date, end_date = self.get_date_range()
 
         if user.role == 'sys-admin':
             queryset = Hall.objects.all().order_by('-id')
@@ -415,15 +442,15 @@ class HallUsageStatsView(generics.ListAPIView):
         queryset = queryset.annotate(
             confirmed_count=Count(
                 'bookings', 
-                filter=Q(bookings__date__range=[one_week_ago, today], bookings__status='confirmed')
+                filter=Q(bookings__date__range=[start_date, end_date], bookings__status='confirmed')
             ),
             pending_count=Count(
                 'bookings', 
-                filter=Q(bookings__date__range=[one_week_ago, today], bookings__status='pending')
+                filter=Q(bookings__date__range=[start_date, end_date], bookings__status='pending')
             ),
             cancelled_count=Count(
                 'bookings', 
-                filter=Q(bookings__date__range=[one_week_ago, today], bookings__status='cancelled')
+                filter=Q(bookings__date__range=[start_date, end_date], bookings__status='cancelled')
             )
         )
         

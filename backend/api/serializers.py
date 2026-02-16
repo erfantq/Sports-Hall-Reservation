@@ -314,7 +314,8 @@ class HallUsageStatsSerializer(serializers.ModelSerializer):
         fields = ['name', 'city', 'sport', 'total_slots', 'reserved_slots', 'pending_slots', 'cancelled_slots', 'available_slots']
 
     def get_total_slots(self, obj):
-        return 112 
-
+        return self.context.get('total_slots', 112)
+    
     def get_available_slots(self, obj):
-        return 112 - (obj.confirmed_count + obj.pending_count)
+        total = self.context.get('total_slots', 112)
+        return total - (obj.confirmed_count + obj.pending_count)
