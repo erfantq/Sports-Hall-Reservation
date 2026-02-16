@@ -8,8 +8,9 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.response import Response
 from django.db.models import Count
 from .models import Hall, Booking, User, ContactMessage, PasswordResetCode
-from .serializers import MyTokenObtainPairSerializer, UserManagementSerializer, HallSerializer, HallFacilitiesSerializer, HallManagementSerializer, HallDetailSerializer, BookingReadSerializer, BookingCreateSerializer, BookingStatusUpdateSerializer, RegisterSerializer, UserSerializer, ContactMessageSerializer, ForgotPasswordSerializer, VerifyResetCodeSerializer
+from .serializers import MyTokenObtainPairSerializer, HallUsageStatsSerializer, UserManagementSerializer, HallSerializer, HallFacilitiesSerializer, HallManagementSerializer, HallDetailSerializer, BookingReadSerializer, BookingCreateSerializer, BookingStatusUpdateSerializer, RegisterSerializer, UserSerializer, ContactMessageSerializer, ForgotPasswordSerializer, VerifyResetCodeSerializer
 from .permissions import IsHallAdmin, IsSystemAdmin, IsAdminOrManager
+from rest_framework.permissions import AllowAny
 from .utils import api_response
 from django.utils import timezone
 from .pagination import StandardPagination
@@ -386,21 +387,32 @@ class ActiveUserCountView(APIView):
         return Response({"count": count})
     
 
-class HallUsageStatsView(APIView):
+class HallUsageStatsView(generics.ListAPIView):
+    serializer_class = HallUsageStatsSerializer
     permission_classes = [IsAdminOrManager]
+    pagination_class = StandardPagination
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['city', 'sport']
 
-    def get(self, request):
+    def get_queryset(self):
+        user = self.request.user
         today = date.today()
         one_week_ago = today - timedelta(days=7)
-        
-        TOTAL_SLOTS_PER_WEEK = 112
 
-        if request.user.role == 'sys-admin':
-            halls = Hall.objects.all()
+        if user.role == 'sys-admin':
+            queryset = Hall.objects.all().order_by('-id')
         else:
-            halls = Hall.objects.filter(manager=request.user)
+            queryset = Hall.objects.filter(manager=user).order_by('-id')
 
-        stats = halls.annotate(
+        city_param = self.request.query_params.get('city')
+        sport_param = self.request.query_params.get('sport')
+
+        if city_param:
+            queryset = queryset.filter(city=city_param)
+        if sport_param:
+            queryset = queryset.filter(sport=sport_param)
+
+        queryset = queryset.annotate(
             confirmed_count=Count(
                 'bookings', 
                 filter=Q(bookings__date__range=[one_week_ago, today], bookings__status='confirmed')
@@ -414,31 +426,9 @@ class HallUsageStatsView(APIView):
                 filter=Q(bookings__date__range=[one_week_ago, today], bookings__status='cancelled')
             )
         )
-
-        results = []
-        for hall in stats:
-            reserved = hall.confirmed_count
-            pending = hall.pending_count
-            cancelled = hall.cancelled_count
-            available = TOTAL_SLOTS_PER_WEEK - (reserved + pending)
-            
-            results.append({
-                "name": hall.name,
-                "city": hall.city,
-                "sport": hall.sport,
-                "total_slots": TOTAL_SLOTS_PER_WEEK,
-                "reserved_slots": reserved,
-                "pending_slots": pending,
-                "cancelled_slots": cancelled,
-                "available_slots": max(0, available) 
-            })
-
-        return Response(results)
+        
+        return queryset
     
-
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
 
 class HallConfigView(APIView):
 

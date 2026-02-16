@@ -253,6 +253,13 @@ class VerifyResetCodeSerializer(serializers.Serializer):
 
 
 class HallManagementSerializer(serializers.ModelSerializer):
+
+    CITY_CHOICES = ["Mashhad", "Tehran", "Isfahan", "Shiraz", "Rasht"]
+    SPORT_CHOICES = ["Football", "Basketball", "Volleyball", "Futsal"]
+
+
+    city = serializers.ChoiceField(choices=CITY_CHOICES)
+    sport = serializers.ChoiceField(choices=SPORT_CHOICES)
     pricePerHour = serializers.IntegerField(source='price_per_hour')
     address = serializers.CharField(source='location')
     
@@ -283,3 +290,31 @@ class HallFacilitiesSerializer(serializers.ModelSerializer):
         instance.amenities = ",".join(facilities_list)
         instance.save()
         return instance
+    
+    def validate_city(self, value):
+        if value not in self.CITY_CHOICES:
+            raise serializers.ValidationError(f"شهر انتخاب شده معتبر نیست. گزینه‌های مجاز: {', '.join(self.CITY_CHOICES)}")
+        return value
+
+    def validate_sport(self, value):
+        if value not in self.SPORT_CHOICES:
+            raise serializers.ValidationError(f"ورزش انتخاب شده معتبر نیست. گزینه‌های مجاز: {', '.join(self.SPORT_CHOICES)}")
+        return value
+    
+
+class HallUsageStatsSerializer(serializers.ModelSerializer):
+    reserved_slots = serializers.IntegerField(source='confirmed_count', read_only=True)
+    pending_slots = serializers.IntegerField(source='pending_count', read_only=True)
+    cancelled_slots = serializers.IntegerField(source='cancelled_count', read_only=True)
+    total_slots = serializers.SerializerMethodField()
+    available_slots = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Hall
+        fields = ['name', 'city', 'sport', 'total_slots', 'reserved_slots', 'pending_slots', 'cancelled_slots', 'available_slots']
+
+    def get_total_slots(self, obj):
+        return 112 
+
+    def get_available_slots(self, obj):
+        return 112 - (obj.confirmed_count + obj.pending_count)
