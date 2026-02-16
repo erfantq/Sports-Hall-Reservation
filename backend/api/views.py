@@ -1,15 +1,16 @@
 import random
 from django.db.models import Q, Count
 from django.core.mail import send_mail
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from rest_framework import generics, filters, permissions, status
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.response import Response
 from django.db.models import Count
 from .models import Hall, Booking, User, ContactMessage, PasswordResetCode
-from .serializers import MyTokenObtainPairSerializer, UserManagementSerializer, HallSerializer, HallFacilitiesSerializer, HallManagementSerializer, HallDetailSerializer, BookingReadSerializer, BookingCreateSerializer, BookingStatusUpdateSerializer, RegisterSerializer, UserSerializer, ContactMessageSerializer, ForgotPasswordSerializer, VerifyResetCodeSerializer
+from .serializers import MyTokenObtainPairSerializer, HallUsageStatsSerializer, UserManagementSerializer, HallSerializer, HallFacilitiesSerializer, HallManagementSerializer, HallDetailSerializer, BookingReadSerializer, BookingCreateSerializer, BookingStatusUpdateSerializer, RegisterSerializer, UserSerializer, ContactMessageSerializer, ForgotPasswordSerializer, VerifyResetCodeSerializer
 from .permissions import IsHallAdmin, IsSystemAdmin, IsAdminOrManager
+from rest_framework.permissions import AllowAny
 from .utils import api_response
 from django.utils import timezone
 from .pagination import StandardPagination
@@ -66,7 +67,7 @@ class RegisterView(generics.CreateAPIView):
 
     def create(self, request, *args, **kwargs):
         response = super().create(request, *args, **kwargs)
-        response.data['message'] = "ثبت‌نام با موفقیت انجام شد. خوش آمدید!"
+        response.data['message'] = "Registration completed successfully. Welcome!"
         return response
 
 class UserProfileView(generics.RetrieveUpdateAPIView):
@@ -78,7 +79,7 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
     
     def update(self, request, *args, **kwargs):
         response = super().update(request, *args, **kwargs)
-        response.data['message'] = "پروفایل شما با موفقیت بروزرسانی شد."
+        response.data['message'] = "Your profile was updated successfully."
         return response
     
 
@@ -149,8 +150,8 @@ class SystemStatsView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        if request.user.role != 'sys_admin':
-            return Response({"error": "عدم دسترسی"}, status=status.HTTP_403_FORBIDDEN)
+        if request.user.role != 'sys-admin':
+            return Response({"error": "Access denied"}, status=status.HTTP_403_FORBIDDEN)
 
         stats = {
             "total_users": User.objects.count(),
@@ -177,15 +178,15 @@ class ForgotPasswordView(APIView):
                 )
 
                 send_mail(
-                    'کد تایید فراموشی رمز عبور',
-                    f'کد تایید شما: {code}',
+                    'Password Reset Verification Code',
+                    f'Your verification code is: {code}',
                     'noreply@yourdomain.com',
                     [email],
                     fail_silently=False,
                 )
-                return api_response(message="کد تایید به ایمیل شما ارسال شد.")
+                return api_response(message="Verification code sent to your email.")
             
-            return api_response(message="کاربری با این ایمیل یافت نشد.", status_code=404)
+            return api_response(message="No user found with this email.", status_code=404)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class VerifyResetCodeView(APIView):
@@ -207,9 +208,9 @@ class VerifyResetCodeView(APIView):
                 
                 reset_entry.delete()
                 
-                return api_response(message="رمز عبور شما با موفقیت تغییر کرد.")
+                return api_response(message="Your password was changed successfully.")
             
-            return api_response(message="کد نامعتبر است یا منقضی شده است.", status_code=400)
+            return api_response(message="The code is invalid or expired.", status_code=400)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
@@ -251,7 +252,7 @@ class UserDetailUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
         self.perform_destroy(instance)
         return Response({
             "status": True,
-            "message": "کاربر با موفقیت حذف شد.",
+            "message": "User deleted successfully.",
             "data": {"id": user_id}
         }, status=status.HTTP_200_OK)
     
@@ -314,7 +315,7 @@ class HallDeleteView(generics.DestroyAPIView):
         self.perform_destroy(instance)
         return Response({
             "status": True,
-            "message": "سالن با موفقیت حذف شد.",
+            "message": "Venue deleted successfully.",
             "data": {"id": hall_id}
         }, status=status.HTTP_200_OK)
     
@@ -335,7 +336,7 @@ class HallFacilitiesUpdateView(generics.UpdateAPIView):
         instance = self.get_object()
         full_data = HallSerializer(instance).data
         response.data = full_data
-        response.data['message'] = "امکانات با موفقیت بروزرسانی شد."
+        response.data['message'] = "Facilities updated successfully."
         return response
     
 
@@ -386,51 +387,83 @@ class ActiveUserCountView(APIView):
         return Response({"count": count})
     
 
-class HallUsageStatsView(APIView):
+class HallUsageStatsView(generics.ListAPIView):
+    serializer_class = HallUsageStatsSerializer
     permission_classes = [IsAdminOrManager]
+    pagination_class = StandardPagination
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['city', 'sport']
 
-    def get(self, request):
-        today = date.today()
-        one_week_ago = today - timedelta(days=7)
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        start_date, end_date = self.get_date_range()
         
-        TOTAL_SLOTS_PER_WEEK = 112
+        days_count = (end_date - start_date).days + 1
+        context['total_slots'] = days_count * 16 
+        return context
+    
 
-        if request.user.role == 'sys-admin':
-            halls = Hall.objects.all()
+
+    def get_date_range(self):
+        start_param = self.request.query_params.get('start_date')
+        end_param = self.request.query_params.get('end_date')
+
+        try:
+            if start_param and end_param:
+                start_date = datetime.strptime(start_param, '%Y-%m-%d').date()
+                end_date = datetime.strptime(end_param, '%Y-%m-%d').date()
+            else:
+                end_date = date.today()
+                start_date = end_date - timedelta(days=6)
+        except ValueError:
+            end_date = date.today()
+            start_date = end_date - timedelta(days=6)
+            
+        return start_date, end_date
+
+    def get_queryset(self):
+        user = self.request.user
+        start_date, end_date = self.get_date_range()
+
+        if user.role == 'sys-admin':
+            queryset = Hall.objects.all().order_by('-id')
         else:
-            halls = Hall.objects.filter(manager=request.user)
+            queryset = Hall.objects.filter(manager=user).order_by('-id')
 
-        stats = halls.annotate(
+        city_param = self.request.query_params.get('city')
+        sport_param = self.request.query_params.get('sport')
+
+        if city_param:
+            queryset = queryset.filter(city=city_param)
+        if sport_param:
+            queryset = queryset.filter(sport=sport_param)
+
+        queryset = queryset.annotate(
             confirmed_count=Count(
                 'bookings', 
-                filter=Q(bookings__date__range=[one_week_ago, today], bookings__status='confirmed')
+                filter=Q(bookings__date__range=[start_date, end_date], bookings__status='confirmed')
             ),
             pending_count=Count(
                 'bookings', 
-                filter=Q(bookings__date__range=[one_week_ago, today], bookings__status='pending')
+                filter=Q(bookings__date__range=[start_date, end_date], bookings__status='pending')
             ),
             cancelled_count=Count(
                 'bookings', 
-                filter=Q(bookings__date__range=[one_week_ago, today], bookings__status='cancelled')
+                filter=Q(bookings__date__range=[start_date, end_date], bookings__status='cancelled')
             )
         )
+        
+        return queryset
+    
 
-        results = []
-        for hall in stats:
-            reserved = hall.confirmed_count
-            pending = hall.pending_count
-            cancelled = hall.cancelled_count
-            available = TOTAL_SLOTS_PER_WEEK - (reserved + pending)
-            
-            results.append({
-                "name": hall.name,
-                "city": hall.city,
-                "sport": hall.sport,
-                "total_slots": TOTAL_SLOTS_PER_WEEK,
-                "reserved_slots": reserved,
-                "pending_slots": pending,
-                "cancelled_slots": cancelled,
-                "available_slots": max(0, available) 
-            })
+class HallConfigView(APIView):
 
-        return Response(results)
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        data = {
+            "cities": ["Mashhad", "Tehran", "Isfahan", "Shiraz", "Rasht"],
+            "sports": ["Football", "Basketball", "Volleyball", "Futsal"]
+        }
+        return Response(data)

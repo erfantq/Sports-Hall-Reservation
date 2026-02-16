@@ -60,7 +60,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 
         if target_role != 'user' and target_role != user.role:
-            raise serializers.ValidationError("شما فقط می‌توانید نقش خود را به 'user' تغییر دهید.")
+            raise serializers.ValidationError("You can only change your role to 'user'.")
 
         return target_role
 
@@ -77,7 +77,7 @@ class HallSerializer(serializers.ModelSerializer):
 
     def get_tags(self, obj):
         if obj.amenities:
-            return [tag.strip() for tag in obj.amenities.replace('،', ',').split(',') if tag.strip()]
+            return [tag.strip() for tag in obj.amenities.replace("\u060C", ",").split(",") if tag.strip()]
         return []
     
 
@@ -97,7 +97,7 @@ class HallDetailSerializer(serializers.ModelSerializer):
 
     def get_tags(self, obj):
         if obj.amenities:
-            return [tag.strip() for tag in obj.amenities.replace('،', ',').split(',') if tag.strip()]
+            return [tag.strip() for tag in obj.amenities.replace("\u060C", ",").split(",") if tag.strip()]
         return []
 
     def get_slots(self, obj):
@@ -141,8 +141,8 @@ class BookingCreateSerializer(serializers.ModelSerializer):
             user = request.user  
 
             if self.instance:
-              if 'status' in attrs and user.role not in ['venue-manager', 'sys_admin']:
-                  raise serializers.ValidationError("شما اجازه تغییر وضعیت رزرو را ندارید.")
+              if 'status' in attrs and user.role not in ['venue-manager', 'sys-admin']:
+                  raise serializers.ValidationError("You are not allowed to change booking status.")
 
             hall = attrs.get('hall', getattr(self.instance, 'hall', None))
             date_val = attrs.get('date', getattr(self.instance, 'date', None))
@@ -151,7 +151,7 @@ class BookingCreateSerializer(serializers.ModelSerializer):
 
             if start and end and (not self.instance or any(k in attrs for k in ['date', 'start_time', 'end_time'])):
                 if start >= end:
-                    raise serializers.ValidationError("زمان پایان باید بعد از زمان شروع باشد.")
+                    raise serializers.ValidationError("End time must be after start time.")
 
                 conflicting_bookings = Booking.objects.filter(
                     hall=hall,
@@ -166,7 +166,7 @@ class BookingCreateSerializer(serializers.ModelSerializer):
                     conflicting_bookings = conflicting_bookings.exclude(pk=self.instance.pk)
                 
                 if conflicting_bookings.exists():
-                    raise serializers.ValidationError("این سالن در زمان انتخاب شده قبلاً رزرو شده است.")
+                    raise serializers.ValidationError("This venue is already booked for the selected time.")
             
             return attrs
         
@@ -203,7 +203,7 @@ class BookingStatusUpdateSerializer(serializers.ModelSerializer):
 
     def validate_status(self, value):
         if value not in ['confirmed', 'cancelled']:
-            raise serializers.ValidationError("وضعیت ارسالی باید confirmed یا cancelled باشد.")
+            raise serializers.ValidationError("Status must be either 'confirmed' or 'cancelled'.")
         return value
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -217,7 +217,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def validate_role(self, value):
         if value == 'sys-admin':
-            raise serializers.ValidationError("انتخاب نقش مدیر سیستم در ثبت‌نام غیرمجاز است.")
+            raise serializers.ValidationError("Selecting the system admin role during registration is not allowed.")
         return value
     
     def create(self, validated_data):
@@ -253,6 +253,13 @@ class VerifyResetCodeSerializer(serializers.Serializer):
 
 
 class HallManagementSerializer(serializers.ModelSerializer):
+
+    CITY_CHOICES = ["Mashhad", "Tehran", "Isfahan", "Shiraz", "Rasht"]
+    SPORT_CHOICES = ["Football", "Basketball", "Volleyball", "Futsal"]
+
+
+    city = serializers.ChoiceField(choices=CITY_CHOICES)
+    sport = serializers.ChoiceField(choices=SPORT_CHOICES)
     pricePerHour = serializers.IntegerField(source='price_per_hour')
     address = serializers.CharField(source='location')
     
@@ -275,7 +282,7 @@ class HallFacilitiesSerializer(serializers.ModelSerializer):
 
     def get_tags(self, obj):
         if obj.amenities:
-            return [tag.strip() for tag in obj.amenities.replace('،', ',').split(',') if tag.strip()]
+            return [tag.strip() for tag in obj.amenities.replace("\u060C", ",").split(",") if tag.strip()]
         return []
 
     def update(self, instance, validated_data):
@@ -283,3 +290,32 @@ class HallFacilitiesSerializer(serializers.ModelSerializer):
         instance.amenities = ",".join(facilities_list)
         instance.save()
         return instance
+    
+    def validate_city(self, value):
+        if value not in self.CITY_CHOICES:
+            raise serializers.ValidationError(f"Invalid city. Allowed values: {', '.join(self.CITY_CHOICES)}")
+        return value
+
+    def validate_sport(self, value):
+        if value not in self.SPORT_CHOICES:
+            raise serializers.ValidationError(f"Invalid sport. Allowed values: {', '.join(self.SPORT_CHOICES)}")
+        return value
+    
+
+class HallUsageStatsSerializer(serializers.ModelSerializer):
+    reserved_slots = serializers.IntegerField(source='confirmed_count', read_only=True)
+    pending_slots = serializers.IntegerField(source='pending_count', read_only=True)
+    cancelled_slots = serializers.IntegerField(source='cancelled_count', read_only=True)
+    total_slots = serializers.SerializerMethodField()
+    available_slots = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Hall
+        fields = ['name', 'city', 'sport', 'total_slots', 'reserved_slots', 'pending_slots', 'cancelled_slots', 'available_slots']
+
+    def get_total_slots(self, obj):
+        return self.context.get('total_slots', 112)
+    
+    def get_available_slots(self, obj):
+        total = self.context.get('total_slots', 112)
+        return total - (obj.confirmed_count + obj.pending_count)

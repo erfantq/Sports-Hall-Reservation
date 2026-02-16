@@ -8,9 +8,9 @@ class UniversalRenderer(JSONRenderer):
         
         message = ""
         if status_bool:
-            message = data.get('message', "عملیات با موفقیت انجام شد") if isinstance(data, dict) else "عملیات با موفقیت انجام شد"
+            message = data.get('message', "Operation completed successfully.") if isinstance(data, dict) else "Operation completed successfully."
         else:
-            message = "خطایی رخ داده است"
+            message = "An error occurred."
             if isinstance(data, dict):
                 message = data.get('detail', data.get('message', message))
 
