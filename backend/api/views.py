@@ -67,7 +67,7 @@ class RegisterView(generics.CreateAPIView):
 
     def create(self, request, *args, **kwargs):
         response = super().create(request, *args, **kwargs)
-        response.data['message'] = "ثبت‌نام با موفقیت انجام شد. خوش آمدید!"
+        response.data['message'] = "Registration completed successfully. Welcome!"
         return response
 
 class UserProfileView(generics.RetrieveUpdateAPIView):
@@ -79,7 +79,7 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
     
     def update(self, request, *args, **kwargs):
         response = super().update(request, *args, **kwargs)
-        response.data['message'] = "پروفایل شما با موفقیت بروزرسانی شد."
+        response.data['message'] = "Your profile was updated successfully."
         return response
     
 
@@ -150,8 +150,8 @@ class SystemStatsView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        if request.user.role != 'sys_admin':
-            return Response({"error": "عدم دسترسی"}, status=status.HTTP_403_FORBIDDEN)
+        if request.user.role != 'sys-admin':
+            return Response({"error": "Access denied"}, status=status.HTTP_403_FORBIDDEN)
 
         stats = {
             "total_users": User.objects.count(),
@@ -178,15 +178,15 @@ class ForgotPasswordView(APIView):
                 )
 
                 send_mail(
-                    'کد تایید فراموشی رمز عبور',
-                    f'کد تایید شما: {code}',
+                    'Password Reset Verification Code',
+                    f'Your verification code is: {code}',
                     'noreply@yourdomain.com',
                     [email],
                     fail_silently=False,
                 )
-                return api_response(message="کد تایید به ایمیل شما ارسال شد.")
+                return api_response(message="Verification code sent to your email.")
             
-            return api_response(message="کاربری با این ایمیل یافت نشد.", status_code=404)
+            return api_response(message="No user found with this email.", status_code=404)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class VerifyResetCodeView(APIView):
@@ -208,9 +208,9 @@ class VerifyResetCodeView(APIView):
                 
                 reset_entry.delete()
                 
-                return api_response(message="رمز عبور شما با موفقیت تغییر کرد.")
+                return api_response(message="Your password was changed successfully.")
             
-            return api_response(message="کد نامعتبر است یا منقضی شده است.", status_code=400)
+            return api_response(message="The code is invalid or expired.", status_code=400)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
@@ -252,7 +252,7 @@ class UserDetailUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
         self.perform_destroy(instance)
         return Response({
             "status": True,
-            "message": "کاربر با موفقیت حذف شد.",
+            "message": "User deleted successfully.",
             "data": {"id": user_id}
         }, status=status.HTTP_200_OK)
     
@@ -315,7 +315,7 @@ class HallDeleteView(generics.DestroyAPIView):
         self.perform_destroy(instance)
         return Response({
             "status": True,
-            "message": "سالن با موفقیت حذف شد.",
+            "message": "Venue deleted successfully.",
             "data": {"id": hall_id}
         }, status=status.HTTP_200_OK)
     
@@ -336,7 +336,7 @@ class HallFacilitiesUpdateView(generics.UpdateAPIView):
         instance = self.get_object()
         full_data = HallSerializer(instance).data
         response.data = full_data
-        response.data['message'] = "امکانات با موفقیت بروزرسانی شد."
+        response.data['message'] = "Facilities updated successfully."
         return response
     
 
