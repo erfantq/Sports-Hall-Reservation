@@ -11,7 +11,7 @@ const ANIM_MS = 180;
 
 export default function BookingsAdmin() {
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("All"); // All | pending | confirmed | canceled
+  const [status, setStatus] = useState("All"); // All | pending | confirmed | cancelled
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
 
@@ -74,10 +74,10 @@ export default function BookingsAdmin() {
 
       if (!payload?.status) throw new Error(payload?.message || "Request failed.");
 
-      setItems(payload.data.items || []);
-      setTotalPages(payload.data.total_pages || 1);
+      setItems(payload.data || []);
+      setTotalPages(payload.total_pages || 1);
 
-      if (page > (payload.data.total_pages || 1)) setPage(payload.data.total_pages || 1);
+      if (page > (payload.total_pages || 1)) setPage(payload.total_pages || 1);
     } catch (e) {
       if (e?.name === "AbortError") return;
       setError(e?.message || "Failed to load bookings.");
@@ -117,13 +117,13 @@ export default function BookingsAdmin() {
     setError("");
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/bookings/confirm/`, {
-        method: "POST",
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin-halls/bookings/${confirmTarget.id}/status/`, {
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
         },
         body: JSON.stringify({
-          id: confirmTarget.id,
           status: "confirmed",
         }),
       });
@@ -150,14 +150,14 @@ export default function BookingsAdmin() {
     setError("");
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/bookings/confirm/`, {
-        method: "POST",
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin-halls/bookings/${cancelTarget.id}/status/`, {
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
         },
         body: JSON.stringify({
-          id: cancelTarget.id,
-          status: "canceled",
+          status: "cancelled",
         }),
       });
       if (!res?.status) throw new Error(res?.message || "Cancel failed.");
@@ -200,14 +200,16 @@ export default function BookingsAdmin() {
   }, [page, totalPages, loading, isAnimating]);
 
   const statusBadge = (st) => {
-    const cls =
-      st === "confirmed" ? "status-badge ok" : st === "canceled" ? "status-badge off" : "status-badge warn";
-    const label = st === "confirmed" ? "Confirmed" : st === "canceled" ? "Canceled" : "Pending";
-    return <Badge className={cls}>{label}</Badge>;
+    const normalized = String(st ?? "pending").toLowerCase();
+    const label = st ?? "pending";
+    return <Badge bg="" className={`status-badge status-${normalized}`}>{label}</Badge>;
   };
 
-  const canConfirm = (b) => b.status === "pending";
-  const canCancel = (b) => b.status !== "canceled";
+  const canConfirm = (b) => String(b.status ?? "").toLowerCase() === "pending";
+  const canCancel = (b) => {
+    const normalized = String(b.status ?? "").toLowerCase();
+    return normalized !== "cancelled" && normalized !== "canceled";
+  };
 
   return (
     <div>
@@ -240,7 +242,7 @@ export default function BookingsAdmin() {
                 <option value="All">All</option>
                 <option value="pending">Pending</option>
                 <option value="confirmed">Confirmed</option>
-                <option value="canceled">Canceled</option>
+                <option value="cancelled">Cancelled</option>
               </Form.Select>
             </Col>
 
@@ -257,8 +259,8 @@ export default function BookingsAdmin() {
 
           {error && <Alert variant="danger" className="mt-3 mb-0">{error}</Alert>}
 
-          <div className="admin-table-wrap mt-3">
-            <Table responsive className={`admin-table ${isAnimating ? `is-animating ${direction}` : ""}`}>
+          <div className="admin-glass-wrapper mt-3">
+            <Table responsive className={`admin-glass-table ${isAnimating ? `is-animating ${direction}` : ""}`}>
               <thead>
                 <tr>
                   <th>ID</th>
@@ -269,7 +271,7 @@ export default function BookingsAdmin() {
                   <th>Hours</th>
                   <th>Total</th>
                   <th>Status</th>
-                  <th className="text-end">Actions</th>
+                  {localStorage.getItem("role") === "venue-manager" && <th>Actions</th>}
                 </tr>
               </thead>
 
@@ -291,33 +293,34 @@ export default function BookingsAdmin() {
                 ) : (
                   items.map((b) => (
                     <tr key={b.id}>
-                      <td className="muted">#{b.id}</td>
+                      <td className="text-white muted">#{b.id}</td>
 
                       <td>
-                        <div className="text-white fw-semibold">{b.user.name}</div>
-                        <div className="muted small">{b.user.email}</div>
+                        <div className="text-white fw-semibold">{b.userName}</div>
+                        {/* <div className="muted small">{b.email}</div> */}
                       </td>
 
                       <td>
-                        <div className="text-white fw-semibold">{b.venue.name}</div>
-                        <div className="muted small">{b.venue.city} • {b.venue.sport}</div>
+                        <div className="text-white fw-semibold">{b.hallName}</div>
+    
                       </td>
 
-                      <td className="muted">{b.date}</td>
-                      <td className="muted">{b.start_time}</td>
-                      <td className="muted">{b.hours}</td>
+                      <td className="text-white muted">{b.date}</td>
+                      <td className="text-white muted">{b.time}</td>
+                      <td className="text-white muted">{b.durationHours}</td>
 
                       <td className="text-white">
-                        <span className="fw-semibold">${b.price_total}</span>
+                        <span className="fw-semibold">${b.price}</span>
                       </td>
 
                       <td>{statusBadge(b.status)}</td>
 
-                      <td className="text-end">
-                        <div className="d-inline-flex gap-2">
-                          <Button
-                            variant="outline-light"
-                            className="icon-btn"
+                      {localStorage.getItem("role") === "venue-manager" && (
+                        <td className="text-end">
+                          <div className="d-inline-flex gap-2">
+                            <Button
+                              variant="outline-light"
+                              className="icon-btn"
                             onClick={() => openConfirm(b)}
                             disabled={mutating || !canConfirm(b)}
                             title="Confirm"
@@ -335,9 +338,7 @@ export default function BookingsAdmin() {
                             <FaTimes />
                           </Button>
                         </div>
-
-                     
-                      </td>
+                      </td>)}
                     </tr>
                   ))
                 )}

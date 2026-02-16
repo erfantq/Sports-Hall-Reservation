@@ -3,15 +3,6 @@ import { Card, Button, Form, Row, Col, Table, Badge, Spinner, Alert, Pagination 
 import { FaPlus, FaEdit, FaTrash, FaListUl } from "react-icons/fa";
 import "./VenuesAdmin.css";
 
-import {
-  fetchVenuesMock,
-  createVenueMock,
-  updateVenueMock,
-  deleteVenueMock,
-  fetchFacilitiesMock,
-  updateVenueFacilitiesMock,
-} from "../../api/admin/venues.api";
-
 import VenueFormModal from "../../components/admin/VenueFormModal";
 import VenueFacilitiesModal from "../../components/admin/VenueFacilitiesModal";
 import ConfirmModal from "../../components/admin/ConfirmModal";
@@ -22,6 +13,7 @@ const PLACEHOLDER_IMG =
 
 export default function VenuesAdmin() {
   const [query, setQuery] = useState("");
+  const searchRef = useRef(null);
   const [city, setCity] = useState("All");
   const [sport, setSport] = useState("All");
   // const [active, setActive] = useState("All"); // All | true | false
@@ -30,6 +22,8 @@ export default function VenuesAdmin() {
   const pageSize = 8;
 
   const [items, setItems] = useState([]);
+  const [cities, setCities] = useState(["All"]);
+  const [sports, setSports] = useState(["All"]);
   const [totalPages, setTotalPages] = useState(1);
 
   const [allFacilities, setAllFacilities] = useState([]);
@@ -72,22 +66,55 @@ export default function VenuesAdmin() {
   }, [query, city, sport]);
 
   const loadFacilities = async () => {
+    const controller = new AbortController();
+
     try {
       const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/halls/facilities/`, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+        signal: controller.signal,
+      });
+
+      const payload = await res.json();
+      if (payload?.status) setAllFacilities(payload.data.facilities || []);
+    } catch (e) {
+      console.log("loadFacilities error:", e);
+    }
+
+  };
+
+  const loadFilters = async () => {
+    try {
+      const params = new URLSearchParams();
+      params.set("page_size", 100); // fetch enough records to build dropdowns
+
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/halls/?${params.toString()}`, {
         method: "GET",
         headers: {
           Accept: "application/json",
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("access_token")}`,
         },
-        signal: controller.signal,
       });
+
       const payload = await res.json();
-      if (payload?.status) setAllFacilities(payload.data || []);
-    } catch {
-      // ignore
+      if (!res.ok) throw new Error(payload?.message || "Failed to load filters.");
+
+      const results = payload.results || payload.data || [];
+      const uniqueCities = Array.from(new Set(results.map((v) => v.city).filter(Boolean)));
+      const uniqueSports = Array.from(new Set(results.map((v) => v.sport).filter(Boolean)));
+
+      setCities(["All", ...uniqueCities]);
+      setSports(["All", ...uniqueSports]);
+    } catch (e) {
+      console.log("loadFilters error:", e);
+      // keep defaults; UI can still function
     }
   };
+
 
   const load = async () => {
     setError("");
@@ -107,15 +134,16 @@ export default function VenuesAdmin() {
       //   signal: controller.signal,
       // });
 
-      const params = new URLSearchParams({
-        page,
-        page_size: pageSize,
-        search: query,
-        city,
-        sport,
-      });
+      const params = new URLSearchParams();
+      params.set("page", page);
+      params.set("page_size", pageSize);
+      if (query.trim()) params.set("search", query.trim());
+      if (city && city !== "All") params.set("city", city);
+      if (sport && sport !== "All") params.set("sport", sport);
 
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/halls/`, {
+      const url = `${import.meta.env.VITE_API_BASE_URL}/api/admin/halls/?${params.toString()}`;
+
+      const res = await fetch(url, {
         method: "GET",
         headers: {
           Accept: "application/json",
@@ -123,16 +151,20 @@ export default function VenuesAdmin() {
           Authorization: `Bearer ${localStorage.getItem("access_token")}`,
         },
         signal: controller.signal,
-        params,
       });
       const payload = await res.json();
 
-      if (!payload?.status) throw new Error(payload?.message || "Request failed.");
+      if (!res.ok) throw new Error(payload?.message || "Request failed.");
 
-      setItems(payload.data || []);
-      setTotalPages(payload.total_pages || 1);
+      const results = payload.results || payload.data || [];
+      const totalItems = payload.total_items ?? payload.count ?? results.length;
+      const effectivePageSize = payload.page_size || pageSize;
 
-      if (page > (payload.total_pages || 1)) setPage(payload.total_pages || 1);
+      setItems(results);
+      const computedTotalPages = Math.max(1, Math.ceil(totalItems / effectivePageSize));
+      setTotalPages(computedTotalPages);
+
+      if (page > computedTotalPages) setPage(computedTotalPages);
     } catch (e) {
       if (e?.name === "AbortError") return;
       setError(e?.message || "Failed to load venues.");
@@ -145,16 +177,27 @@ export default function VenuesAdmin() {
 
   useEffect(() => {
     loadFacilities();
+    loadFilters();
   }, []);
 
   useEffect(() => {
-    load();
-    return () => abortRef.current?.abort();
+    const delay = query.trim() ? 500 : 0;
+    const t = setTimeout(() => {
+      load();
+    }, delay);
+
+    return () => {
+      clearTimeout(t);
+      abortRef.current?.abort();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, query, city, sport]);
 
-  const cities = useMemo(() => ["All", ...Array.from(new Set(items.map((v) => v.city).filter(Boolean)))], [items]);
-  const sports = useMemo(() => ["All", ...Array.from(new Set(items.map((v) => v.sport).filter(Boolean)))], [items]);
+  useEffect(() => {
+    if (!loading) {
+      searchRef.current?.focus();
+    }
+  }, [loading]);
 
   const openCreate = () => {
     setFormMode("create");
@@ -186,7 +229,7 @@ export default function VenuesAdmin() {
         const payload = await res.json();
         if (!payload?.status) throw new Error(payload?.message || "Create failed.");
       } else {
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/halls/update/${editingVenue.id}`, {
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/halls/update/${editingVenue.id}/`, {
           method: "PATCH",
           headers: {
             Accept: "application/json",
@@ -219,7 +262,7 @@ export default function VenuesAdmin() {
     setError("");
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/halls/update-facilities/${facVenue.id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/halls/update-facilities/${facVenue.id}/`, {
         method: "PATCH",
         headers: {
           Accept: "application/json",
@@ -252,7 +295,7 @@ export default function VenuesAdmin() {
     setError("");
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/halls/delete/${deletingVenue.id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/halls/delete/${deletingVenue.id}/`, {
         method: "DELETE",
         headers: {
           Accept: "application/json",
@@ -316,7 +359,7 @@ export default function VenuesAdmin() {
           <FaPlus style={{ marginRight: 8 }} />
           Add venue
         </Button>
-      </div>
+      </div> 
 
       <Card className="glass-card">
         <Card.Body>
@@ -324,6 +367,7 @@ export default function VenuesAdmin() {
             <Col md={5} >
               <Form.Label className="form-label-dark">Search</Form.Label>
               <Form.Control
+                ref={searchRef}
                 className="dark-input"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -368,6 +412,7 @@ export default function VenuesAdmin() {
                   <th>Sport</th>
                   <th>Price</th>
                   <th>Facilities</th>
+                  <th>Address</th>
                   <th className="text-end">Actions</th>
                 </tr>
               </thead>
@@ -407,7 +452,7 @@ export default function VenuesAdmin() {
                       <td className="muted text-white">{v.city}</td>
                       <td className="muted text-white">{v.sport}</td>
                       <td className="text-white">
-                        <span className="fw-semibold">${v.price_per_hour}</span>
+                        <span className="fw-semibold">${v.pricePerHour}</span>
                         <span className="muted"> / hour</span>
                       </td>
 
@@ -416,6 +461,8 @@ export default function VenuesAdmin() {
                           {(v.facilities || []).length} items
                         </Badge>
                       </td>
+
+                      <td className="muted text-white">{v.address}</td>
 
                       <td className="text-end">
                         <div className="d-inline-flex gap-2">

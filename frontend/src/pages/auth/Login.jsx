@@ -58,7 +58,14 @@ export default function  Login() {
       //   localStorage.setItem("refresh_token", payload.data.refresh);
       // }
 
-      navigate("/");
+      if(payload.data.role == "sys-admin") {
+        navigate("/admin");
+
+      } else if(payload.data.role == "venue-manager") {
+        navigate("/admin/venues");
+      } else {
+        navigate("/");
+      }
 
     } catch (err) {
       setError(err.message || "Login error");

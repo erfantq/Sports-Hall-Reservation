@@ -11,9 +11,10 @@ export default function VenueFormModal({
 }) {
   const [form, setForm] = useState({
     name: "",
+    address: "",
     city: "",
     sport: "",
-    price_per_hour: "",
+    pricePerHour: "",
     rating: "",
     cover_image: "",
     is_active: true,
@@ -26,9 +27,10 @@ export default function VenueFormModal({
     if (mode === "edit" && initialVenue) {
       setForm({
         name: initialVenue.name || "",
+        address: initialVenue.address || "",
         city: initialVenue.city || "",
         sport: initialVenue.sport || "",
-        price_per_hour: initialVenue.price_per_hour ?? "",
+        pricePerHour: initialVenue.pricePerHour ?? "",
         rating: initialVenue.rating ?? "",
         cover_image: initialVenue.cover_image || "",
         is_active: initialVenue.is_active ?? true,
@@ -36,9 +38,10 @@ export default function VenueFormModal({
     } else {
       setForm({
         name: "",
+        address: "",
         city: "",
         sport: "",
-        price_per_hour: "",
+        pricePerHour: "",
         rating: "",
         cover_image: "",
         is_active: true,
@@ -54,15 +57,17 @@ export default function VenueFormModal({
     setErr("");
 
     if (!form.name.trim()) return setErr("Name is required.");
+    if (!form.address.trim()) return setErr("Address is required.");
     if (!form.city.trim()) return setErr("City is required.");
     if (!form.sport.trim()) return setErr("Sport is required.");
-    if (!String(form.price_per_hour).trim()) return setErr("Price per hour is required.");
+    if (!String(form.pricePerHour).trim()) return setErr("Price per hour is required.");
 
     onSubmit?.({
       name: form.name.trim(),
+      address: form.address.trim(),
       city: form.city.trim(),
       sport: form.sport.trim(),
-      price_per_hour: Number(form.price_per_hour),
+      pricePerHour: Number(form.pricePerHour),
       rating: form.rating === "" ? undefined : Number(form.rating),
       cover_image: form.cover_image.trim(),
       is_active: form.is_active,
@@ -87,6 +92,17 @@ export default function VenueFormModal({
           </Col>
 
           <Col md={6}>
+            <Form.Label className="form-label-dark">Address</Form.Label>
+            <Form.Control
+              className="dark-input"
+              value={form.address}
+              onChange={(e) => set("address", e.target.value)}
+              disabled={loading}
+              placeholder="1234 Main St, Suite 100"
+            />
+          </Col>
+
+          <Col md={6}>
             <Form.Label className="form-label-dark">City</Form.Label>
             <Form.Control className="dark-input" value={form.city} onChange={(e) => set("city", e.target.value)} disabled={loading} />
           </Col>
@@ -101,8 +117,8 @@ export default function VenueFormModal({
             <Form.Control
               className="dark-input"
               type="number"
-              value={form.price_per_hour}
-              onChange={(e) => set("price_per_hour", e.target.value)}
+              value={form.pricePerHour}
+              onChange={(e) => set("pricePerHour", e.target.value)}
               disabled={loading}
             />
           </Col>

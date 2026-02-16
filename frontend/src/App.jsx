@@ -27,7 +27,13 @@ function AdminGuard({ children }) {
 
 function AdminAndVenueManagerGuard({ children }) {
   const { role } = useAuth();
-  if(role !== "sys-admin" || role !== "venue-manager") return <Navigate to="/" replace />;
+  if(role !== "sys-admin" && role !== "venue-manager") return <Navigate to="/" replace />;
+  return children;
+}
+
+function UserGuard({ children }) {
+  const { role } = useAuth();
+  if(role !== "user") return <Navigate to="/" replace />;
   return children;
 }
 
@@ -39,11 +45,19 @@ export default function App() {
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
-      <Route path="/profile" element={<Profile />} />
       <Route path="/venues/:id" element={<VenueDetails />} />
       <Route path="/contact-support" element={<ContactSupport />} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
+
+      <Route
+        path="/profile"
+        element={
+          <UserGuard>
+            <Profile />
+          </UserGuard>
+        }
+      />
 
       <Route
         path="/admin"

@@ -7,9 +7,15 @@ const RESERVES_COUNT_URL = `${API_BASE}/api/halls/reserves-count`;
 
 const ACTIVE_USERS_URL = `${API_BASE}/api/admin/users/active-count`;
 
+const getTodayISO = () => {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+
 export default function AdminDashboard() {
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [startDate, setStartDate] = useState(() => "2026-01-01");
+  const [endDate, setEndDate] = useState(() => getTodayISO());
 
   const [loading, setLoading] = useState(false);
 

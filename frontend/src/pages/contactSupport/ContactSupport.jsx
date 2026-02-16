@@ -5,8 +5,8 @@ import "./ContactSupport.css";
 export default function ContactSupport() {
   const [form, setForm] = useState({
     subject: "",
-    type: "Bug",
-    priority: "Medium",
+    type: "bug",
+    priority: "medium",
     message: "",
   });
 
@@ -14,7 +14,7 @@ export default function ContactSupport() {
   const [error, setError] = useState("");
 
   const onChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    setForm({ ...form, [e.target.name]: e.target.value.toLowerCase() });
   };
 
   const onSubmit = async (e) => {
@@ -28,9 +28,13 @@ export default function ContactSupport() {
 
     const payload = { subject: form.subject, type: form.type, priority: form.priority, message: form.message }
     try {
-      const res = await fetch(`/api/contact`, {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/contact/`, {
         method: "POST",
-        headers: { Accept: "application/json" },
+        headers: { 
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+        },
         body: JSON.stringify(payload),
       });
       const response = await res.json();
@@ -39,7 +43,7 @@ export default function ContactSupport() {
     } catch (error) {
       setError(error.message);
     }
-    setForm({ subject: "", type: "Bug", priority: "Medium", message: "" });
+    setForm({ subject: "", type: "bug", priority: "medium", message: "" });
   };
 
   return (

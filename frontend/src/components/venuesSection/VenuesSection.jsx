@@ -42,14 +42,14 @@ function normalizeResponse(payload) {
     };
   }
 
-  const items = payload.data.results;
+  const items = payload.data;
 
   return {
     ok: true,
     message: payload?.message || "",
     items: items,
-    totalPages: Math.ceil(Number(payload?.data?.total_items / payload?.data?.page_size)),
-    page: Number(payload?.data?.page || 1),
+    totalPages: Math.ceil(Number(payload?.total_items / payload?.page_size)),
+    page: Number(payload?.page || 1),
   };
 }
 

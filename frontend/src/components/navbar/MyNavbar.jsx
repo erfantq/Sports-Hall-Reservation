@@ -17,6 +17,14 @@ function MyNavbar() {
     navigate("/login");
   };
 
+  const handleAdminPanel = () => {
+    navigate("/admin");
+  };
+
+  const handleVenueManagerPanel = () => {
+    navigate("/admin/venues");
+  };
+
   return (
     <Navbar
       expand="md"
@@ -36,14 +44,33 @@ function MyNavbar() {
           <Nav className="me-auto nav-links">
             <Nav.Link as={Link} to="/">Home</Nav.Link>
             <Nav.Link as={Link} to="#venues">Venues</Nav.Link>
-            <Nav.Link as={Link} to="#pricing">Pricing</Nav.Link>
           </Nav>
 
           {/* Right side (desktop): auth links */}
-          {localStorage.getItem("access_token") && (
+          {(localStorage.getItem("role") == "user") && (
             <Nav className="ms-auto nav-auth">
               <Nav.Link onClick={handleProfile} className="nav-auth-link">
                 Profile
+              </Nav.Link>
+              <Nav.Link onClick={handleLogout} className="nav-auth-link">
+                Logout
+              </Nav.Link>
+            </Nav>
+          )}
+          {(localStorage.getItem("role") == "sys-admin") && (
+            <Nav className="ms-auto nav-auth">
+              <Nav.Link onClick={handleAdminPanel} className="nav-auth-link">
+                Admin Panel
+              </Nav.Link>
+              <Nav.Link onClick={handleLogout} className="nav-auth-link">
+                Logout
+              </Nav.Link>
+            </Nav>
+          )}
+          {(localStorage.getItem("role") == "venue-manager") && (
+            <Nav className="ms-auto nav-auth">
+              <Nav.Link onClick={handleVenueManagerPanel} className="nav-auth-link">
+                Venue Manager Panel
               </Nav.Link>
               <Nav.Link onClick={handleLogout} className="nav-auth-link">
                 Logout

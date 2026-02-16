@@ -11,6 +11,7 @@ const ANIM_MS = 180;
 export default function UsersAdmin() {
   const [query, setQuery] = useState("");
   const [role, setRole] = useState("All");
+  const searchRef = useRef(null);
 
   const [page, setPage] = useState(1);
   const pageSize = 8;
@@ -32,7 +33,7 @@ export default function UsersAdmin() {
   const [showDelete, setShowDelete] = useState(false);
   const [deletingUser, setDeletingUser] = useState(null);
 
-  const [active, setActive] = useState("All");
+  const [isActive, setIsActive] = useState("All");
 
   const abortRef = useRef(null);
 
@@ -53,7 +54,7 @@ export default function UsersAdmin() {
     // reset to page 1 when filters change
     if (page !== 1) goToPage(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, role]);
+  }, [query, role, isActive]);
 
   const load = async () => {
     setError("");
@@ -64,20 +65,38 @@ export default function UsersAdmin() {
     abortRef.current = controller;
 
     try {
-      const payload = await fetchUsers({
-        page,
-        page_size: pageSize,
-        search: query,
-        role,
-        active,
+      const params = new URLSearchParams();
+      params.set("page", page);
+      params.set("page_size", pageSize);
+      if (query.trim()) params.set("search", query.trim());
+      if (role && role !== "All") params.set("role", role);
+      if (isActive && isActive !== "All") params.set("is_active", isActive);
+
+      const url = `${import.meta.env.VITE_API_BASE_URL}/api/users/?${params.toString()}`;
+
+      const res = await fetch(url, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+        signal: controller.signal,
       });
 
-      if (!payload?.status) throw new Error(payload?.message || "Request failed.");
+      const payload = await res.json();
 
-      setItems(payload.data.items || []);
-      setTotalPages(payload.data.total_pages || 1);
+      if (!res.ok) throw new Error(payload?.message || "Request failed.");
 
-      if (page > (payload.data.total_pages || 1)) setPage(payload.data.total_pages || 1);
+      const results = payload.results || payload.data || [];
+      const totalItems = payload.total_items ?? payload.count ?? results.length;
+      const effectivePageSize = payload.page_size || pageSize;
+      const fallbackTotalPages = Math.ceil(totalItems / effectivePageSize);
+      const computedTotalPages = Math.max(1, payload.total_pages ?? fallbackTotalPages);
+
+      setItems(results);
+      setTotalPages(computedTotalPages);
+
+      if (page > computedTotalPages) setPage(computedTotalPages);
     } catch (e) {
       if (e?.name === "AbortError") return;
       setError(e?.message || "Failed to load users.");
@@ -89,27 +108,28 @@ export default function UsersAdmin() {
   };
 
   useEffect(() => {
-    load();
-    return () => abortRef.current?.abort();
+    const delay = query.trim() ? 500 : 0;
+    const t = setTimeout(() => {
+      load();
+    }, delay);
+
+    return () => {
+      clearTimeout(t);
+      abortRef.current?.abort();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, query, role]);
+  }, [page, query, role, isActive]);
+
+  useEffect(() => {
+    if (!loading) {
+      searchRef.current?.focus();
+    }
+  }, [loading]);
 
   const roleBadge = (r) => {
-    if (r === "admin") return <Badge className="role-badge role-admin">Admin</Badge>;
-    if (r === "venue_manager") return <Badge className="role-badge role-vm">Venue manager</Badge>;
-    return <Badge className="role-badge role-user">User</Badge>;
-  };
-
-  const fetchUsers = async (params) => {
-    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/users/`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-      },
-      params,
-    });
-    return await res.json();
+    if (r === "sys-admin") return <Badge className="badge-glass role-badge role-admin">Admin</Badge>;
+    if (r === "venue-manager") return <Badge className="badge-glass role-badge role-vm">Venue manager</Badge>;
+    return <Badge className="badge-glass role-badge role-user">User</Badge>;
   };
 
   const openCreate = () => {
@@ -129,7 +149,7 @@ export default function UsersAdmin() {
     setError("");
     try {
       if (formMode === "create") {
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/users/create/`, {
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/users/`, {
           method: "POST",
           headers: {
             Accept: "application/json",
@@ -141,7 +161,7 @@ export default function UsersAdmin() {
         const payload = await res.json();
         if (!payload?.status) throw new Error(payload?.message || "Create failed.");
       } else {
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/users/update/${editingUser.id}`, {
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/users/${editingUser.id}/`, {
           method: "PATCH",
           headers: {
             Accept: "application/json",
@@ -174,7 +194,7 @@ export default function UsersAdmin() {
     setError("");
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/users/delete/${deletingUser.id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/users/${deletingUser.id}/`, {
         method: "DELETE",
         headers: {
           Accept: "application/json",
@@ -264,6 +284,7 @@ export default function UsersAdmin() {
             <Col md={5}>
               <Form.Label className="form-label-dark">Search</Form.Label>
               <Form.Control
+                ref={searchRef}
                 className="dark-input"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -282,14 +303,14 @@ export default function UsersAdmin() {
               >
                 <option value="All">All</option>
                 <option value="user">User</option>
-                <option value="venue_manager">Venue manager</option>
-                <option value="admin">Admin</option>
+                <option value="venue-manager">Venue manager</option>
+                <option value="sys-admin">Admin</option>
               </Form.Select>
             </Col>
 
             <Col md={3}>
               <Form.Label className="form-label-dark">Status</Form.Label>
-              <Form.Select className="dark-input" value={active} onChange={(e) => setActive(e.target.value)} disabled={loading || mutating}>
+              <Form.Select className="dark-input" value={isActive} onChange={(e) => setIsActive(e.target.value)} disabled={loading || mutating}>
                 <option value="All">All</option>
                 <option value="true">Active</option>
                 <option value="false">Inactive</option>
@@ -299,8 +320,8 @@ export default function UsersAdmin() {
 
           {error && <Alert variant="danger" className="mt-3 mb-0">{error}</Alert>}
 
-          <div className="admin-table-wrap mt-3">
-            <Table responsive className={`admin-table ${isAnimating ? `is-animating ${direction}` : ""}`}>
+          <div className="admin-glass-wrapper mt-3">
+            <Table responsive className={`admin-glass-table ${isAnimating ? `is-animating ${direction}` : ""}`}>
               <thead>
                 <tr>
                   <th>Username</th>
@@ -331,14 +352,14 @@ export default function UsersAdmin() {
                   items.map((u) => (
                     <tr key={u.id}>
                       <td className="text-white fw-semibold">{u.username}</td>
-                      <td className="muted">{u.email}</td>
+                      <td className="text-white muted">{u.email}</td>
                       <td>{roleBadge(u.role)}</td>
                       <td>
-                        <Badge className={`status-badge ${u.is_active ? "ok" : "off"}`}>
+                        <Badge className={`badge-glass status-badge ${u.is_active ? "ok" : "off"}`}>
                           {u.is_active ? "Active" : "Inactive"}
                         </Badge>
                       </td>
-                      <td className="muted">{u.created_at}</td>
+                      <td className="text-white muted">{u.created_at}</td>
                       <td className="text-end">
                         <div className="d-inline-flex gap-2">
                           <Button

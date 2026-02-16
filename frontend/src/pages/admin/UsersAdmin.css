@@ -45,31 +45,49 @@
   background: rgba(255, 80, 80, 0.10) !important;
 }
 
-.role-badge {
-  border-radius: 12px;
-  padding: 8px 10px;
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(255,255,255,0.06);
+.badge-glass {
+  --badge-min: 112px;
+  min-width: var(--badge-min);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 13px;
+  border-radius: 999px;
   font-weight: 800;
-  color: rgba(255,255,255,0.88);
-}
-
-.role-admin { background: rgba(255,255,255,0.10); }
-.role-vm { background: rgba(255,255,255,0.06); }
-.role-user { background: rgba(255,255,255,0.04); }
-
-.status-badge {
-  border-radius: 12px;
-  padding: 8px 10px;
-  font-weight: 900;
-  min-width: 92px;
+  letter-spacing: 0.1px;
   text-align: center;
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(255,255,255,0.06);
-  color: rgba(255,255,255,0.85);
+  color: rgba(255,255,255,0.9);
+  background: rgba(255,255,255,0.08) !important;
+  border: 1px solid rgba(255,255,255,0.18) !important;
+  backdrop-filter: blur(12px);
+  box-shadow: none;
 }
-.status-badge.ok { background: rgba(255,255,255,0.10); }
-.status-badge.off { opacity: 0.7; }
+
+@media (max-width: 576px) {
+  .badge-glass { --badge-min: 98px; padding: 6px 11px; }
+}
+
+.role-admin {
+  border-color: rgba(255, 153, 177, 0.5) !important;
+  color: #ffc0d2;
+}
+.role-vm {
+  border-color: rgba(173, 140, 255, 0.55) !important;
+  color: #ddc9ff;
+}
+.role-user {
+  border-color: rgba(255,255,255,0.20) !important;
+  color: rgba(255,255,255,0.92);
+}
+
+.status-badge.ok {
+  border-color: rgba(90, 255, 190, 0.55) !important;
+  color: #b6ffe4;
+}
+.status-badge.off {
+  border-color: rgba(255, 140, 160, 0.55) !important;
+  color: #ffc1cb;
+}
 
 /* انیمیشن paging خیلی ملایم */
 .admin-table.is-animating.next { animation: slideNext 180ms ease; }

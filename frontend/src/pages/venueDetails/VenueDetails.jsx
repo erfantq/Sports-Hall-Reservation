@@ -97,6 +97,7 @@ export default function VenueDetails() {
       if (!payload?.status) throw new Error(payload?.message || "Failed to book venue.");
       setMessage(`Booked successfully: ${selectedDate} at ${selectedTime} for ${hours} hour(s).`);
     } catch (error) {
+      if (err?.name === "AbortError") return;
       setError(error.message);
     }
   };
@@ -131,8 +132,8 @@ export default function VenueDetails() {
       setSelectedTime("");
       setTotalPrice(normalized.pricePerHour);
     } catch (err) {
-      setError(err.message);
       if (err.name === "AbortError") return;
+      setError(err.message);
       Navigate('/')
     } finally {
       setVenueLoading(false);

@@ -16,7 +16,7 @@ export default function UserFormModal({
   onSubmit,
 }) {
   const [form, setForm] = useState({
-    name: "",
+    username: "",
     email: "",
     role: "user",
     is_active: true,
@@ -28,13 +28,13 @@ export default function UserFormModal({
     if (!show) return;
     if (mode === "edit" && initialUser) {
       setForm({
-        name: initialUser.name || "",
+        username: initialUser.username || "",
         email: initialUser.email || "",
         role: initialUser.role || "user",
         is_active: initialUser.is_active ?? true,
       });
     } else {
-      setForm({ name: "", email: "", role: "user", is_active: true });
+      setForm({ username: "", email: "", role: "user", is_active: true });
     }
     setErr("");
   }, [show, mode, initialUser]);
@@ -44,11 +44,11 @@ export default function UserFormModal({
   const submit = () => {
     setErr("");
 
-    if (!form.name.trim()) return setErr("Name is required.");
+    if (!form.username.trim()) return setErr("Username is required.");
     if (!form.email.trim()) return setErr("Email is required.");
 
     onSubmit?.({
-      name: form.name.trim(),
+      username: form.username.trim(),
       email: form.email.trim(),
       role: form.role,
       is_active: form.is_active,
@@ -68,12 +68,12 @@ export default function UserFormModal({
 
         <Row className="g-3">
           <Col md={6}>
-            <Form.Label className="form-label-dark">Name</Form.Label>
+            <Form.Label className="form-label-dark">Username</Form.Label>
             <Form.Control
               className="dark-input"
-              value={form.name}
-              onChange={(e) => set("name", e.target.value)}
-              placeholder="Full name"
+              value={form.username}
+              onChange={(e) => set("username", e.target.value)}
+              placeholder="Username"
               disabled={loading}
             />
           </Col>
