@@ -46,17 +46,21 @@ class Command(BaseCommand):
 
         halls = []
         for i in range(20):
+            company_name = " ".join(fake.company().split()[:2])
+            short_address = " ".join(fake.address().replace("\n", " ").split()[:2])
+
             hall = Hall.objects.create(
-                name=f"{fake.company()} Arena",
+                name=f"{company_name} Arena",
                 city=random.choice(cities),
                 sport=random.choice(sports),
                 price_per_hour=random.choice([100000, 150000, 200000, 250000]),
                 rating=round(random.uniform(3.5, 5.0), 1),
-                location=fake.address(),
+                location=short_address,
                 capacity=random.randint(10, 30),
                 manager=random.choice(managers),
                 amenities=", ".join(random.sample(all_amenities, k=random.randint(2, 5)))
             )
+
             halls.append(hall)
 
         self.stdout.write("Creating bookings...")
