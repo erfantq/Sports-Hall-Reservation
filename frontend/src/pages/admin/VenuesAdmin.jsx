@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState , useMemo } from "react";
 import { Card, Button, Form, Row, Col, Table, Badge, Spinner, Alert, Pagination } from "react-bootstrap";
 import { FaPlus, FaEdit, FaTrash, FaListUl } from "react-icons/fa";
 import "./VenuesAdmin.css";
@@ -22,8 +22,8 @@ export default function VenuesAdmin() {
   const pageSize = 8;
 
   const [items, setItems] = useState([]);
-  const [cities, setCities] = useState(["All"]);
-  const [sports, setSports] = useState(["All"]);
+  const [configCities, setConfigCities] = useState([]);
+  const [configSports, setConfigSports] = useState([]);
   const [totalPages, setTotalPages] = useState(1);
 
   const [allFacilities, setAllFacilities] = useState([]);
@@ -46,6 +46,8 @@ export default function VenuesAdmin() {
   const [deletingVenue, setDeletingVenue] = useState(null);
 
   const abortRef = useRef(null);
+  const configAbortRef = useRef(null);
+  const [configLoading, setConfigLoading] = useState(false);
 
   const goToPage = (nextPage) => {
     const clamped = Math.max(1, Math.min(totalPages, nextPage));
@@ -86,32 +88,34 @@ export default function VenuesAdmin() {
 
   };
 
-  const loadFilters = async () => {
-    try {
-      const params = new URLSearchParams();
-      params.set("page_size", 100); // fetch enough records to build dropdowns
+  const loadConfig = async () => {
+    setConfigLoading(true);
 
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/halls/?${params.toString()}`, {
+    if (configAbortRef.current) configAbortRef.current.abort();
+    const controller = new AbortController();
+    configAbortRef.current = controller;
+
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/halls/config/`, {
         method: "GET",
         headers: {
           Accept: "application/json",
-          "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("access_token")}`,
         },
+        signal: controller.signal,
       });
 
       const payload = await res.json();
-      if (!res.ok) throw new Error(payload?.message || "Failed to load filters.");
+      if (!res.ok || !payload?.status) throw new Error(payload?.message || "Failed to load config.");
 
-      const results = payload.results || payload.data || [];
-      const uniqueCities = Array.from(new Set(results.map((v) => v.city).filter(Boolean)));
-      const uniqueSports = Array.from(new Set(results.map((v) => v.sport).filter(Boolean)));
-
-      setCities(["All", ...uniqueCities]);
-      setSports(["All", ...uniqueSports]);
+      setConfigCities(payload.data?.cities || []);
+      setConfigSports(payload.data?.sports || []);
     } catch (e) {
-      console.log("loadFilters error:", e);
-      // keep defaults; UI can still function
+      console.log("loadConfig error:", e);
+      setConfigCities([]);
+      setConfigSports([]);
+    } finally {
+      setConfigLoading(false);
     }
   };
 
@@ -177,7 +181,11 @@ export default function VenuesAdmin() {
 
   useEffect(() => {
     loadFacilities();
-    loadFilters();
+    loadConfig();
+
+    return () => {
+      configAbortRef.current?.abort();
+    };
   }, []);
 
   useEffect(() => {
@@ -378,8 +386,13 @@ export default function VenuesAdmin() {
 
             <Col md={4} >
               <Form.Label className="form-label-dark">City</Form.Label>
-              <Form.Select className="dark-input" value={city} onChange={(e) => setCity(e.target.value)} disabled={loading || mutating}>
-                {cities.map((c) => (
+              <Form.Select
+                className="dark-input"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                disabled={loading || mutating || configLoading}
+              >
+                {["All", ...configCities].map((c) => (
                   <option key={c} value={c}>
                     {c}
                   </option>
@@ -389,8 +402,13 @@ export default function VenuesAdmin() {
 
             <Col md={3} >
               <Form.Label className="form-label-dark">Sport</Form.Label>
-              <Form.Select className="dark-input" value={sport} onChange={(e) => setSport(e.target.value)} disabled={loading || mutating}>
-                {sports.map((s) => (
+              <Form.Select
+                className="dark-input"
+                value={sport}
+                onChange={(e) => setSport(e.target.value)}
+                disabled={loading || mutating || configLoading}
+              >
+                {["All", ...configSports].map((s) => (
                   <option key={s} value={s}>
                     {s}
                   </option>
@@ -497,6 +515,8 @@ export default function VenuesAdmin() {
         mode={formMode}
         initialVenue={editingVenue}
         loading={mutating}
+        cities={configCities}
+        sports={configSports}
         onClose={() => setShowForm(false)}
         onSubmit={submitVenue}
       />

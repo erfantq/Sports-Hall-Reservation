@@ -6,6 +6,8 @@ export default function VenueFormModal({
   mode = "create", // "create" | "edit"
   initialVenue = null,
   loading = false,
+  cities = [],
+  sports = [],
   onClose,
   onSubmit,
 }) {
@@ -59,7 +61,9 @@ export default function VenueFormModal({
     if (!form.name.trim()) return setErr("Name is required.");
     if (!form.address.trim()) return setErr("Address is required.");
     if (!form.city.trim()) return setErr("City is required.");
+    if (cities.length && !cities.includes(form.city)) return setErr("Please select a valid city.");
     if (!form.sport.trim()) return setErr("Sport is required.");
+    if (sports.length && !sports.includes(form.sport)) return setErr("Please select a valid sport.");
     if (!String(form.pricePerHour).trim()) return setErr("Price per hour is required.");
 
     onSubmit?.({
@@ -104,12 +108,36 @@ export default function VenueFormModal({
 
           <Col md={6}>
             <Form.Label className="form-label-dark">City</Form.Label>
-            <Form.Control className="dark-input" value={form.city} onChange={(e) => set("city", e.target.value)} disabled={loading} />
+            <Form.Select
+              className="dark-input"
+              value={form.city}
+              onChange={(e) => set("city", e.target.value)}
+              disabled={loading || cities.length === 0}
+            >
+              <option value="">Select a city</option>
+              {cities.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </Form.Select>
           </Col>
 
           <Col md={6}>
             <Form.Label className="form-label-dark">Sport</Form.Label>
-            <Form.Control className="dark-input" value={form.sport} onChange={(e) => set("sport", e.target.value)} disabled={loading} />
+            <Form.Select
+              className="dark-input"
+              value={form.sport}
+              onChange={(e) => set("sport", e.target.value)}
+              disabled={loading || sports.length === 0}
+            >
+              <option value="">Select a sport</option>
+              {sports.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </Form.Select>
           </Col>
 
           <Col md={6}>
