@@ -434,3 +434,19 @@ class HallUsageStatsView(APIView):
             })
 
         return Response(results)
+    
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import AllowAny
+
+class HallConfigView(APIView):
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        data = {
+            "cities": ["Mashhad", "Tehran", "Isfahan", "Shiraz", "Rasht"],
+            "sports": ["Football", "Basketball", "Volleyball", "Futsal"]
+        }
+        return Response(data)

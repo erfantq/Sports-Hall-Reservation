@@ -13,7 +13,7 @@ from .views import (
     HallFacilitiesUpdateView, HallFacilitiesListView,
     GlobalBookingListView,
     BookingCountView, ActiveUserCountView,
-    HallUsageStatsView,
+    HallUsageStatsView, HallConfigView,
 )
 
 
@@ -59,4 +59,6 @@ urlpatterns = [
 
 
     path('admin/halls/usage-stats/', HallUsageStatsView.as_view(), name='halls-usage-stats'),
+
+    path('halls/config/', HallConfigView.as_view(), name='hall-config'),
 ]
