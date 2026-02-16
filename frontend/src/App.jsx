@@ -14,6 +14,7 @@ import VenuesAdmin from "./pages/admin/VenuesAdmin";
 import BookingsAdmin from "./pages/admin/BookingsAdmin";
 import AdminReservesReport from "./pages/admin/AdminReservesReport";
 import AdminActiveUsersReport from "./pages/admin/AdminActiveUsersReport";
+import UsageStatsAdmin from "./pages/admin/UsageStatsAdmin";
 // import ScheduleAdmin from "./pages/admin/ScheduleAdmin";
 // import ReportsAdmin from "./pages/admin/ReportsAdmin";
 
@@ -86,6 +87,7 @@ export default function App() {
         >
           <Route path="venues" element={<VenuesAdmin />} />
           <Route path="bookings" element={<BookingsAdmin />} />
+          <Route path="halls/usage-stats" element={<UsageStatsAdmin />} />
         </Route>
     </Routes>
   );
