@@ -1,4 +1,3 @@
-````md
 # Sports Hall Reservation System
 
 A full-stack web application for browsing, managing, and reserving sports halls.  
@@ -191,7 +190,6 @@ docs/
 
 ### Home Page
 
-<!-- screenshot: take a screenshot of the landing/home page after running the frontend -->
 
 <figure>
   <img src="docs/screenshots/home-page.png" alt="Sports Hall Reservation home page" />
@@ -200,7 +198,6 @@ docs/
 
 ### Login Page
 
-<!-- screenshot: take a screenshot of the login page -->
 
 <figure>
   <img src="docs/screenshots/login-page.png" alt="Login page" />
@@ -209,7 +206,6 @@ docs/
 
 ### Register Page
 
-<!-- screenshot: take a screenshot of the register page -->
 
 <figure>
   <img src="docs/screenshots/register-page.png" alt="Register page" />
@@ -218,7 +214,6 @@ docs/
 
 ### Venue List
 
-<!-- screenshot: take a screenshot of the venue listing section with search/filter visible -->
 
 <figure>
   <img src="docs/screenshots/venue-list.png" alt="Venue list page" />
@@ -227,7 +222,6 @@ docs/
 
 ### Venue Details
 
-<!-- screenshot: take a screenshot of a single venue details page -->
 
 <figure>
   <img src="docs/screenshots/venue-details.png" alt="Venue details page" />
@@ -239,7 +233,6 @@ docs/
 
 ### Profile Page
 
-<!-- screenshot: take a screenshot of the user profile page -->
 
 <figure>
   <img src="docs/screenshots/profile-page.png" alt="User profile page" />
@@ -248,7 +241,6 @@ docs/
 
 ### Contact Support Page
 
-<!-- screenshot: take a screenshot of the contact support form -->
 
 <figure>
   <img src="docs/screenshots/contact-support.png" alt="Contact support page" />
@@ -257,7 +249,6 @@ docs/
 
 ### Admin Dashboard
 
-<!-- screenshot: take a screenshot of the main admin dashboard -->
 
 <figure>
   <img src="docs/screenshots/admin-dashboard.png" alt="Admin dashboard" />
@@ -266,7 +257,6 @@ docs/
 
 ### Admin Users Management
 
-<!-- screenshot: take a screenshot of the users management page -->
 
 <figure>
   <img src="docs/screenshots/admin-users.png" alt="Admin users management page" />
@@ -275,7 +265,6 @@ docs/
 
 ### Admin Venues Management
 
-<!-- screenshot: take a screenshot of the venues management page -->
 
 <figure>
   <img src="docs/screenshots/admin-venues.png" alt="Admin venues management page" />
@@ -284,7 +273,6 @@ docs/
 
 ### Admin Bookings Management
 
-<!-- screenshot: take a screenshot of the bookings management page -->
 
 <figure>
   <img src="docs/screenshots/admin-bookings.png" alt="Admin bookings management page" />
@@ -293,7 +281,6 @@ docs/
 
 ### Hall Usage Statistics
 
-<!-- screenshot: take a screenshot of the reservation report page -->
 
 <figure>
   <img src="docs/screenshots/reserves-report.png" alt="Reservation report page" />
